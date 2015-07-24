@@ -1,0 +1,17 @@
+name: 'hh'
+type: 'bamboo'
+count: 10
+template_name: 'some template name'
+provision:
+  - command: 'uptime'
+    type: 'inline'
+  - command: 'echo hi'
+    type: 'inline'
+  - command: 'touch i-was-here'
+    type: 'inline'
+  - path: '/root/provisioners/bamboo-hh.sh'
+    arguments: ['https://hh-bamboo-master', '${user}', '${password}']
+    type: 'script'
+bamboo: 'https://hh-bamboo-master/'
+bamboo_username: '${user}'
+bamboo_password: '${password}'
