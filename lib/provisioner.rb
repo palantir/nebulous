@@ -172,9 +172,6 @@ class Provisioner
       private_key_path = @configuration.private_key_path
       credentials_id = @configuration.credentials_id
       labels = @configuration.labels
-      if labels.nil?
-        labels = ['BNCLHOST']
-      end
       client = ::JenkinsApi::Client.new(:username => jenkins_username,
                                         :password => jenkins_password, :server_url => jenkins)
       vm_hashes.each do |vm_hash|

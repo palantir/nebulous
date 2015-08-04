@@ -139,7 +139,7 @@ class PoolConfig
     def get_template_id
       templates = ON::TemplatePool.new(Utils.client)
       templates.info_all
-      potential_templates = templates.to_hash['VMTEMPLATE_POOL']['VMTEMPLATE'].select {|info| /^#{Regexp.quote(info['NAME']}$/.match(template_name)}
+      potential_templates = templates.to_hash['VMTEMPLATE_POOL']['VMTEMPLATE'].select {|info| /^#{Regexp.quote(info['NAME'])}$/.match(template_name)}
       if potential_templates.length > 1
         raise SeveralTemplatesMatchesError, "The template name was not unique enough and several templates matched: #{potential_templates.map {|t| t['NAME']}.join(', ')}."
       end
@@ -321,7 +321,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path']
+      'credentials_id', 'private_key_path', 'labels']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)
