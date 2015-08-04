@@ -33,7 +33,7 @@ gem install bundler fpm --no-ri --no-rdoc
 
 # clone the repo and bundle the gems
 if [[ ! -e nebulous ]]; then
-  repo="https://github.com/davidk01/nebulous.git"
+  repo="https://github.com/palantir/nebulous.git"
   git clone ${repo}
 fi
 pushd nebulous
@@ -53,7 +53,7 @@ rm -rf /opt/nebulous
 mv nebulous /opt
 
 # package stuff with fpm
-fpm -s dir -t rpm --name 'nebulous' --epoch 1 --maintainer 'davidk01@github' --version ${package_version} /opt/ruby-${version} /opt/nebulous
+fpm -s dir -t rpm --name 'nebulous' --epoch 1 --maintainer 'palantir@github' --version ${package_version} /opt/ruby-${version} /opt/nebulous
 
 # Move it to shared directory
 cp *.rpm /vagrant
