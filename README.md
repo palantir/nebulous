@@ -31,7 +31,7 @@ difference is really a few key-value pairs for username/password and maaster ser
 To configure a bamboo pool you just need to fill in the following template
 
 ```
-name: 'hh'
+name: 'nebulous-bamboo'
 type: 'bamboo'
 count: 10
 template_name: 'some template name'
@@ -42,8 +42,8 @@ type: 'inline'
 type: 'inline'
 - command: 'touch i-was-here'
 type: 'inline'
-- path: '/root/provisioners/bamboo-hh.sh'
-arguments: ['https://hh-bamboo-master', '${user}', '${password}']
+- path: '/root/provisioners/bamboo.sh'
+arguments: ['https://bamboo-master', '${user}', '${password}']
 type: 'script'
 bamboo: 'https://hh-bamboo-master/'
 bamboo_username: '${user}'
@@ -69,7 +69,7 @@ into `irb` to do the encryption and Base64 encoding.
 Same as above with name changes for some of the keys
 
 ```
-name: 'test'
+name: 'nebulous-jenkins'
 type: 'jenkins'
 count: 10
 template_name: 'some template'
@@ -147,14 +147,35 @@ vice-versa I use the private key to encrypt and the public key to decrypt so onl
 where nebulous is running.
 
 ## Encrypting Values
-No utility yet just a snippet of IRB code
+No utility yet just a snippet of IRB code:
 
 ```ruby
 require 'openssl'
 require 'base64'
-key = OpenSSL::RSA::PKey.new(private_key)
-encrypted_value = Base64.encode64(key.private_encrypt(value)).gsub("\n", '')
+key = OpenSSL::PKey::RSA.new(File.read('nebulous_private_key'))
+encrypted_value = Base64.encode64(key.private_encrypt("super sekrit string")).gsub("\n", '')
 ```
+
+The encrypted value would then be used for any "secure" values in the pool configuration yaml file, eg,
+
+```
+name: 'nebulous-jenkins'
+type: 'jenkins'
+count: 10
+template_name: 'some template'
+provision:
+- type: "script"
+path: "/root/provisioners/jenkins.sh"
+arguments: []
+jenkins: 'https://ivy/jenkins'
+jenkins_username: '${user}'
+jenkins_password:
+  secure: '${encrypted_value}'
+credentials_id: '2dfc58d2-9d2e-49dd-849b-4eb1a4933e54'
+private_key_path: '${id_rsa}'
+```
+
+This allows you to safely check the password into your git repo, since it's encrypted.
 
 ## Decrypting Values
 Pretty much same as above but you pass in the public key and base64 decode the encrypted value before passing it in.
@@ -164,6 +185,6 @@ encryption properly
 ```ruby
 require 'openssl'
 require 'base64'
-key = OpenSSL::RSA::PKey.new(public_key)
-decrypted_value = key.public_decrypt(Base.decode64(base64_encrypted_value))
+key = OpenSSL::PKey::RSA.new(File.read('config.pub')
+decrypted_value = key.public_decrypt(Base64.decode64(base64_encrypted_value))
 ```
