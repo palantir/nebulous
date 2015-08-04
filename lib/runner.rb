@@ -53,40 +53,6 @@ def partition_switch(config, opts, actions)
 end
 
 ##
-# Filter the VMs and kill everything that matches the filter. The filter
-# takes an ON VM object and not a hash.
-
-def kill_filter(config, opts, vm_filter)
-  provisioner = config.provisioner
-  vm_hashes = provisioner.opennebula_state
-  id_filter = opts[:synthetic]
-  if id_filter
-    vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
-  end
-  vms = vm_hashes.map {|h| vm = Utils.vm_by_id(h['ID']); vm.info; vm}
-  vms.select! {|vm| vm_filter.call(vm)}}
-  vm_hashes = vms.map {|vm| vm.to_hash['VM']}
-  unless opts[:force]
-    STDOUT.puts "You are about to kill a bunch of VMs:"
-    ids = vm_hashes.map {|vm_hash| vm_hash['ID']}.join(', ')
-    STDOUT.puts ids
-    STDOUT.write "Are you sure you want to proceed? (y/n): "
-    confirmation = STDIN.gets.strip.downcase
-    if confirmation.include?('n')
-      STDOUT.puts "Aborting!"
-      exit!
-    else
-      STDOUT.puts "Proceeding!"
-    end
-  end
-  vm_hashes.each do |vm_hash|
-    vm = Utils.vm_by_id(vm_hash['ID'])
-    STDOUT.puts "Killing VM: #{vm_hash['ID']}."
-    vm.delete
-  end
-end
-
-##
 # All the allowed actions.
 
 valid_actions = {
@@ -145,10 +111,59 @@ valid_actions = {
   # This is a dangerous operation so adding a warning message and forcing the user
   # to acknowledge they want to proceed
   'kill-all' => lambda do |config, opts|
-    kill_filter(config, opts, lambda {|vm| true})
+    provisioner = config.provisioner
+    vm_hashes = provisioner.opennebula_state
+    id_filter = opts[:synthetic]
+    if id_filter
+      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+    end
+    unless opts[:force]
+      STDOUT.puts "You are about to kill a bunch of VMs:"
+      ids = vm_hashes.map {|vm_hash| vm_hash['ID']}.join(', ')
+      STDOUT.puts ids
+      STDOUT.write "Are you sure you want to proceed? (y/n): "
+      confirmation = STDIN.gets.strip.downcase
+      if confirmation.include?('n')
+        STDOUT.puts "Aborting!"
+        exit!
+      else
+        STDOUT.puts "Proceeding!"
+      end
+    end
+    vm_hashes.each do |vm_hash|
+      vm = Utils.vm_by_id(vm_hash['ID'])
+      STDOUT.puts "Killing VM: #{vm_hash['ID']}."
+      vm.delete
+    end
   end,
   'kill-not-running' => lambda do |config, opts|
-    kill_filter(config, opts, lambda {|vm| !vm.status.include?('run')})
+    provisioner = config.provisioner
+    vm_hashes = provisioner.opennebula_state
+    id_filter = opts[:synthetic]
+    if id_filter
+      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+    end
+    vms = vm_hashes.map {|h| vm = Utils.vm_by_id(h['ID']); vm.info; vm}
+    vms.reject! {|vm| vm.status.include?('run')}
+    vm_hashes = vms.map {|vm| vm.to_hash['VM']}
+    unless opts[:force]
+      STDOUT.puts "You are about to kill a bunch of VMs:"
+      ids = vm_hashes.map {|vm_hash| vm_hash['ID']}.join(', ')
+      STDOUT.puts ids
+      STDOUT.write "Are you sure you want to proceed? (y/n): "
+      confirmation = STDIN.gets.strip.downcase
+      if confirmation.include?('n')
+        STDOUT.puts "Aborting!"
+        exit!
+      else
+        STDOUT.puts "Proceeding!"
+      end
+    end
+    vm_hashes.each do |vm_hash|
+      vm = Utils.vm_by_id(vm_hash['ID'])
+      STDOUT.puts "Killing VM: #{vm_hash['ID']}."
+      vm.delete
+    end
   end
 }
 
