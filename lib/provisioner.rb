@@ -171,6 +171,10 @@ class Provisioner
       jenkins = @configuration.jenkins
       private_key_path = @configuration.private_key_path
       credentials_id = @configuration.credentials_id
+      labels = @configuration.labels
+      if labels.nil?
+        labels = ['BNCLHOST']
+      end
       client = ::JenkinsApi::Client.new(:username => jenkins_username,
                                         :password => jenkins_password, :server_url => jenkins)
       vm_hashes.each do |vm_hash|
@@ -181,7 +185,7 @@ class Provisioner
           :name => agent_name, :remote_fs => '/home/jenkins',
           :description => "Ephemeral agent meant to run only 1 job and then die.",
           :slave_host => agent_ip, :private_key_file => private_key_path,
-          :executors => 1, :labels => 'BNCLHOST', :credentials_id => credentials_id})
+          :executors => 1, :labels => labels.join(", "), :credentials_id => credentials_id})
           sleep @@registration_wait_time
       end
     end
