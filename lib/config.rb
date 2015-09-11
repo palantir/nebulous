@@ -335,6 +335,26 @@ class PoolConfig
   end
 
   ##
+  # Contains configuration parameters for OC shared slaves pools.
+
+  class OC < ConfigurationType
+
+    @@configuration_items = ['name', 'type', 'count', 'template_name',
+      'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
+      'credentials_id', 'private_key_path', 'labels']
+
+    def initialize(options = {}, decryption_key_path = nil) 
+      super(options, decryption_key_path)
+      validate
+    end
+
+    def provisioner
+      Provisioner::OCProvisioner.new(self)
+    end
+
+  end
+
+  ##
   # Contains configuration parameters for bamboo pools.
 
   class Bamboo < ConfigurationType
@@ -363,6 +383,8 @@ class PoolConfig
       Jenkins.new(raw_data, key_path)
     when 'bamboo'
       Bamboo.new(raw_data, key_path)
+    when 'oc'
+      OC.new(raw_data, key_path)
     else
       raise UnknownConfigurationTypeError, "Unknown configuration type: #{config_type}."
     end

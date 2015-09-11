@@ -135,6 +135,7 @@ valid_actions = {
       STDOUT.puts "Killing VM: #{vm_hash['ID']}."
       vm.delete
     end
+    provisioner.deleteJobs(vm_hashes)
   end,
   'kill-not-running' => lambda do |config, opts|
     provisioner = config.provisioner
