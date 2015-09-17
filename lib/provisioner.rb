@@ -274,15 +274,24 @@ class Provisioner
         host.content = agent_ip
         jobXml = doc.to_html
         job = ::JenkinsApi::Client::Job.new(client)
-        begin
-          job.create_or_update(agent_name, jobXml)
-        rescue
-          STDERR.puts $!, $@ # Print exception
-          job.create_or_update(agent_name, jobXml) # Try one more time.
-          next
+        job_created = false
+        for counter in 0..20
+          begin
+            job.create_or_update(agent_name, jobXml)
+            job_created = true
+            break
+          rescue
+            STDERR.puts $!, $@ # Print exception
+            sleep 5
+            next
+          end
         end
-        STDOUT.puts "Registered Job Successfully"
-          sleep @@registration_wait_time
+        if job_created
+          STDOUT.puts "Registered Shared Slave Successfully"
+        else
+          raise SharedSlaveNotCreatedError, "Shared Slave not Created."
+        end
+        sleep @@registration_wait_time
       end
     end
 
@@ -297,6 +306,7 @@ class Provisioner
       client = ::JenkinsApi::Client.new(:username => jenkins_username,
                                         :password => jenkins_password, :server_url => jenkins)
       vm_hashes.each do |vm_hash|
+        counter = 0
         agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
         agent_name = "agent - #{agent_ip}"
         #First disable job.
@@ -306,13 +316,24 @@ class Provisioner
         disabled.content = true
         jobXml = doc.to_html
         job = ::JenkinsApi::Client::Job.new(client)
-        begin
-          job.create_or_update(agent_name, jobXml)
-        rescue
-          STDERR.puts $!, $@ # Print exception
-          job.create_or_update(agent_name, jobXml) # Try one more time.
-          next
+        job_created = false
+        for counter in 0..20
+          begin
+            job.create_or_update(agent_name, jobXml)
+            job_created = true
+            break
+          rescue
+              STDERR.puts $!, $@ # Print exception
+              sleep 5
+              next
+          end
         end
+        if job_created
+          STDOUT.puts "Disabled Job Successfully"
+        else
+          raise SharedSlaveNotCreatedError, "Shared Slave not Disabled."
+        end
+        sleep @@registration_wait_time
         #delete job once disbaled.
         begin
           job.delete(agent_name) # delete job if exists
