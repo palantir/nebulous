@@ -194,7 +194,7 @@ class PoolConfig
     end
 
     ##
-    # Try up to 10 times to get the state and then re-raise the exception if there was one.
+    # Try up to 20 times to get the state and then re-raise the exception if there was one.
 
     def opennebula_state
       counter = 0
