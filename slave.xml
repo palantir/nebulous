@@ -10,9 +10,9 @@
    <labelString>BNCLHOST</labelString>
    <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
    <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.9">
-      <host>10.160.36.9</host>
+      <host></host>
       <port>22</port>
-      <credentialsId>419cd895-8beb-45ed-bac6-e958cfdf3d1f</credentialsId>
+      <credentialsId></credentialsId>
       <maxNumRetries>0</maxNumRetries>
       <retryWaitTime>0</retryWaitTime>
    </launcher>

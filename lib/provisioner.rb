@@ -260,8 +260,8 @@ class Provisioner
       jenkins_username = @configuration.jenkins_username
       jenkins_password = @configuration.jenkins_password
       jenkins = @configuration.jenkins
-      private_key_path = @configuration.private_key_path
       credentials_id = @configuration.credentials_id
+      private_key_path = @configuration.private_key_path
       labels = @configuration.labels
       client = ::JenkinsApi::Client.new(:username => jenkins_username,
                                         :password => jenkins_password, :server_url => jenkins)
@@ -272,6 +272,8 @@ class Provisioner
         doc = Nokogiri::XML(jobXml)
         host  = doc.at_css "host"
         host.content = agent_ip
+        credentialsid = doc.at_css "credentialsId"
+        credentialsid.content = credentials_id
         jobXml = doc.to_html
         job = ::JenkinsApi::Client::Job.new(client)
         job_created = false
