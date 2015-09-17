@@ -227,9 +227,9 @@ class Provisioner
   ##
   # Enterprise Jenkins specific registration and garbage collection.
 
-  class OCProvisioner < ProvisionerType
+  class OperationCenterProvisioner < ProvisionerType
 
-    class ForkingProvisioner < OCProvisioner
+    class ForkingProvisioner < OperationCenterProvisioner
 
       def initialize(delta, configuration)
         @delta = delta
@@ -256,7 +256,7 @@ class Provisioner
     # After provisioning perform the registration to jenkins.
 
     def registration(vm_hashes)
-      STDOUT.puts "Registering shared slave to Jenkins OC."
+      STDOUT.puts "Registering shared slave to Jenkins Operation Center."
       jenkins_username = @configuration.jenkins_username
       jenkins_password = @configuration.jenkins_password
       jenkins = @configuration.jenkins
@@ -287,7 +287,7 @@ class Provisioner
     end
 
     def deleteJobs(vm_hashes)
-      STDOUT.puts "Deleting all jobs on Jenkins OC."
+      STDOUT.puts "Deleting all jobs on Jenkins Operation Center."
       jenkins_username = @configuration.jenkins_username
       jenkins_password = @configuration.jenkins_password
       jenkins = @configuration.jenkins
