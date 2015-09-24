@@ -5,6 +5,7 @@ gem "opennebula"
 gem "jenkins_api_client"
 gem "minitest"
 gem "trollop"
+gem "sinatra"
 
 group :test do
   gem 'rake'

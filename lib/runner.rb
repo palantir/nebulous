@@ -45,6 +45,7 @@ end
 
 def partition_switch(config, opts, actions)
   provisioner = config.provisioner
+  STDOUT.puts "provisioner is #{provisioner}"
   if (partition = opts[:partition])
     forking_provisioner_actions(provisioner, partition, actions)
   else

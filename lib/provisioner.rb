@@ -117,8 +117,9 @@ class Provisioner
       stage_collection.generate_files
       vm_hashes.map do |vm|
         ip_address = vm['TEMPLATE']['NIC']['IP']
-        STDOUT.puts "Generating commands for #{vm['NAME']}."
+        STDOUT.puts "Generating commands for #{vm['NAME']} and IP #{ip_address}."
         stage_collection.scp_files(ip_address)
+        STDOUT.puts "Running commands"
         stage_collection.final_command(ip_address)
       end
     end
@@ -136,8 +137,53 @@ class Provisioner
       end
     end
 
+    def deleteJenkinsJobs(vm_hashes)
+      STDOUT.puts "Deleting all jobs on Jenkins."
+      jenkins_username = @configuration.jenkins_username
+      jenkins_password = @configuration.jenkins_password
+      jenkins = @configuration.jenkins
+      private_key_path = @configuration.private_key_path
+      credentials_id = @configuration.credentials_id
+      labels = @configuration.labels
+      client = ::JenkinsApi::Client.new(:username => jenkins_username,
+                                        :password => jenkins_password, :server_url => jenkins)
+      vm_hashes.each do |vm_hash|
+        counter = 0
+        agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
+        agent_name = "agent - #{agent_ip}"
+        #First disable job.
+        jobXml = File.open("slave.xml")
+        doc = Nokogiri::XML(jobXml)
+        disabled  = doc.at_css "disabled"
+        disabled.content = true
+        jobXml = doc.to_html
+        job = ::JenkinsApi::Client::Job.new(client)
+        job_created = false
+        for counter in 0..20
+          begin
+            job.create_or_update(agent_name, jobXml)
+            job_created = true
+            break
+          rescue
+              STDERR.puts $!, $@ # Print exception
+              sleep 5
+              next
+          end
+        end
+        if job_created
+          STDOUT.puts "Disabled Job Successfully"
+        else
+          raise SharedSlaveNotCreatedError, "Shared Slave not Disabled."
+        end
+        begin
+          job.delete(agent_name) # delete job if exists
+        rescue
+          next
+        end
+        STDOUT.puts "Deleted Job Successfully"
+      end
+    end
   end
-
   ##
   # Jenkins specific registration and garbage collection.
 
@@ -189,6 +235,12 @@ class Provisioner
           :executors => 1, :labels => labels.join(", "), :credentials_id => credentials_id})
           sleep @@registration_wait_time
       end
+    end
+
+    alias_method :deleteJobs, :deleteJenkinsJobs
+    
+    def deleteJenkinsJobs
+        super
     end
 
     ##
@@ -297,8 +349,15 @@ class Provisioner
       end
     end
 
-    def deleteJobs(vm_hashes)
-      STDOUT.puts "Deleting all jobs on Jenkins Operation Center."
+    alias_method :deleteJobs, :deleteJenkinsJobs
+
+    def deleteJenkinsJobs
+        super
+    end
+
+
+    def enableJobs(vm_hashes)
+      STDOUT.puts "Re-enabling all jobs on Jenkins Operation Center."
       jenkins_username = @configuration.jenkins_username
       jenkins_password = @configuration.jenkins_password
       jenkins = @configuration.jenkins
@@ -315,7 +374,7 @@ class Provisioner
         jobXml = File.open("slave.xml")
         doc = Nokogiri::XML(jobXml)
         disabled  = doc.at_css "disabled"
-        disabled.content = true
+        disabled.content = false
         jobXml = doc.to_html
         job = ::JenkinsApi::Client::Job.new(client)
         job_created = false
@@ -331,19 +390,10 @@ class Provisioner
           end
         end
         if job_created
-          STDOUT.puts "Disabled Job Successfully"
+          STDOUT.puts "Enabled Job Successfully"
         else
-          raise SharedSlaveNotCreatedError, "Shared Slave not Disabled."
+          raise SharedSlaveNotCreatedError, "Shared Slave not Enabled."
         end
-        sleep @@registration_wait_time
-        #delete job once disbaled.
-        begin
-          job.delete(agent_name) # delete job if exists
-        rescue
-          next
-        end
-        STDOUT.puts "Deleted Job Successfully"
-        sleep @@registration_wait_time
       end
     end
 
@@ -594,7 +644,7 @@ class Provisioner
     # Fail safely by exiting early if there is any chance that we might garbage collect an agent when we shouldn't.
     # There is no elegance here, just pure brute force. At the end of this process we are left with only the active agents
     # and we preserve those VMs on the OpenNebula side (modulo dumb race conditions on Bamboo's side).
-
+    
     def garbage_collect
       bamboo = @configuration.bamboo
       bamboo_username = @configuration.bamboo_username
@@ -693,6 +743,10 @@ class Provisioner
         vm = Utils.vm_by_id(vm_hash['ID'])
         vm.delete
       end
+    end
+
+    def deleteJobs(vm_hashes)
+      #TO-DO
     end
 
   end
