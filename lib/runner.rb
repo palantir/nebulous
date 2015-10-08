@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require_relative '../vendor/bundle/bundler/setup'
-['./errors', './config', './provisioner', './stages', './utils', './controller'].each do |relative|
+['./errors', './config', './provisioner', './stages', './utils', './controller', './jenkins', './bamboo', './operationcenter'].each do |relative|
   require_relative relative
 end
 ['trollop'].each do |g|
@@ -74,7 +74,7 @@ valid_actions = {
   end,
   # Spin up VMs and provision but don't register
   'provision' => lambda do |config, opts|
-    actions = [:provision]
+    actions = [:run]
     partition_switch(config, opts, actions)
   end,
   # Spin up VMs, provision, and register them

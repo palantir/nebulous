@@ -329,7 +329,7 @@ class PoolConfig
     end
 
     def provisioner
-      Provisioner::JenkinsProvisioner.new(self)
+      JenkinsProvisioner.new(self)
     end
 
     def checker
@@ -353,7 +353,7 @@ class PoolConfig
     end
 
     def provisioner
-      Provisioner::OperationCenterProvisioner.new(self)
+      OperationCenterProvisioner.new(self)
     end
 
     def checker
@@ -376,7 +376,7 @@ class PoolConfig
     end
 
     def provisioner
-      Provisioner::BambooProvisioner.new(self)
+      BambooProvisioner.new(self)
     end
 
     def checker

@@ -5,7 +5,7 @@ require_relative './controller'
 ##
 # Supertype for checkers.
 
-class Checker < BnclController
+class Checker
 
   def initialize(configuration)
     @configuration = configuration
@@ -27,7 +27,7 @@ class Checker < BnclController
     end
   end
   
-  class CheckerType
+  class CheckerType < BnclController
 
     class JenkinsChecker < CheckerType
 
