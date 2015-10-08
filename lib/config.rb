@@ -321,7 +321,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path', 'labels']
+      'credentials_id', 'private_key_path', 'labels', 'check']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)
@@ -330,6 +330,10 @@ class PoolConfig
 
     def provisioner
       Provisioner::JenkinsProvisioner.new(self)
+    end
+
+    def checker
+      Checker::JenkinsChecker.new(self)
     end
 
   end
@@ -341,7 +345,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path', 'labels']
+      'credentials_id', 'private_key_path', 'labels', 'check']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)
@@ -352,6 +356,10 @@ class PoolConfig
       Provisioner::OperationCenterProvisioner.new(self)
     end
 
+    def checker
+      Checker::OperationCenterChecker.new(self)
+    end
+
   end
 
   ##
@@ -360,7 +368,7 @@ class PoolConfig
   class Bamboo < ConfigurationType
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
-      'provision', 'bamboo', 'bamboo_username', 'bamboo_password']
+      'provision', 'bamboo', 'bamboo_username', 'bamboo_password', 'check']
 
     def initialize(options = {}, decryption_key_path = nil)
       super(options, decryption_key_path)
@@ -369,6 +377,10 @@ class PoolConfig
 
     def provisioner
       Provisioner::BambooProvisioner.new(self)
+    end
+
+    def checker
+      Checker::BambooChecker.new(self)
     end
 
   end

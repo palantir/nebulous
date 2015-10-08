@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require_relative '../vendor/bundle/bundler/setup'
-['./errors', './config', './provisioner', './stages', './utils'].each do |relative|
+['./errors', './config', './provisioner', './stages', './utils', './controller'].each do |relative|
   require_relative relative
 end
 ['trollop'].each do |g|
@@ -57,16 +57,20 @@ end
 # All the allowed actions.
 
 valid_actions = {
+  # Check vm state
+  'check' => lambda do |config, opts|
+    checker = config.checker
+    vm_hashes = checker.opennebula_state
+    id_filter = opts[:synthetic]
+    if id_filter
+      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+    end
+    checker.run(vm_hashes)
+  end,
   # Clean up stuff on the open nebula side because we no longer see them on the CI side
   'garbage-collect' => lambda do |config, opts|
     provisioner = config.provisioner
     provisioner.garbage_collect
-  end,
-  # Just spin up VMs and don't register them
-  'instantiate' => lambda do |config, opts|
-    provisioner = config.provisioner
-    vm_hashes = provisioner.instantiate
-    pp vm_hashes
   end,
   # Spin up VMs and provision but don't register
   'provision' => lambda do |config, opts|
@@ -95,7 +99,7 @@ valid_actions = {
     if id_filter
       vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
     end
-    provisioner.provision(vm_hashes)
+    provisioner.run(vm_hashes)
   end,
   'dump-state' => lambda do |config, opts|
     provisioner = config.provisioner
