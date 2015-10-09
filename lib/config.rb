@@ -201,20 +201,24 @@ class PoolConfig
       begin
         pool = ON::VirtualMachinePool.new(Utils.client, auth_user_id)
         result = pool.info
+        STDOUT.puts "result #{result}"
         if ON.is_error?(result)
           require 'pp'
           pp result
           raise PoolInformationError, "Unable to get pool information. Something is wrong with RPC endpoint."
         end
         vms = pool.to_hash['VM_POOL']['VM']
+        STDOUT.puts "vms #{vms}"
         everything = vms.nil? ? [] : (Array === vms ? vms : [vms])
         # Filter things down to just this pool
         everything.select do |vm|
+          STDOUT.puts "name #{name}"
           pool = vm['USER_TEMPLATE']['POOL']
           name_match = vm['NAME'].include?(name)
           if pool.nil?
             name_match
           else
+            STDOUT.puts "poolname #{pool}"
             name_match && pool == name
           end
         end

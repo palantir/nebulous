@@ -7,7 +7,7 @@
    <remoteFS>/home/jenkins</remoteFS>
    <numExecutors>1</numExecutors>
    <mode>NORMAL</mode>
-   <labelString>BNCLHOST</labelString>
+   <labelString></labelString>
    <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
    <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.9">
       <host></host>
