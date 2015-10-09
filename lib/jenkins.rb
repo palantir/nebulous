@@ -55,6 +55,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
   end
   
   def deleteJobs
+    #TO-DO
   end
 
   ##

@@ -10,7 +10,6 @@ class BnclController
   # OpenNebula and perform the necessary comparisons and filtering.
 
   def opennebula_state
-    STDOUT.puts "open nebula state #{@configuration.opennebula_state}"
     @configuration.opennebula_state
   end
 

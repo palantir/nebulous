@@ -10,7 +10,7 @@ require 'nokogiri'
 class Provisioner
 
   class ProvisionerType < BnclController
-    
+
     def initialize(configuration)
       @configuration = configuration
       configuration.provision.each_with_index {|stage, index| Stages.from_config(stage, index)}
@@ -30,11 +30,6 @@ class Provisioner
         stage_collection.final_command(ip_address)
       end
     end
-    
-    def deleteJenkinsJobs
-      #noop
-    end
-
   end
 
 end

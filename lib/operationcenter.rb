@@ -74,10 +74,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     end
   end
 
-  alias_method :deleteJobs, :deleteJenkinsJobs
-
-
-  def deleteJenkinsJobs(vm_hashes)
+  def deleteJobs(vm_hashes)
     STDOUT.puts "Deleting all jobs on Jenkins."
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
