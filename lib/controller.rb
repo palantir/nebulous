@@ -1,3 +1,4 @@
+require 'logger'
 require_relative './stages'
 require_relative './errors'
 
@@ -8,6 +9,11 @@ class BnclController
   ##
   # Just delegate to the configuration object because it has all the pieces to access
   # OpenNebula and perform the necessary comparisons and filtering.
+  def action_log
+    action_log = Logger.new( '/opt/nebulous/bncl_actions_log', 'daily' )
+    action_log.level = Logger::INFO
+    @action_log = action_log
+  end
 
   def opennebula_state
     @configuration.opennebula_state
@@ -57,31 +63,10 @@ class BnclController
   # We need to wait until we can reliably make SSH connections to each host and log any errors
   # for the hosts that are unreachable.
 
-  def ssh_ready?(vm_hashes)
-    ssh_test = lambda do |vm_hash|
-      ip_address = vm_hash['TEMPLATE']['NIC']['IP']
-      raise VMIPError, "IP not found: #{vm_hash}." if ip_address.nil?
-      STDOUT.puts "Running #{ssh_prefix} root@#{ip_address} -t 'uptime'"
-      system("#{ssh_prefix} root@#{ip_address} -t 'uptime'")
-    end
-    counter = 0
-    while !vm_hashes.all? {|vm_hash| ssh_test.call(vm_hash)}
-      counter += 1
-      tries_left = 60 - counter
-      STDOUT.puts "Couldn't connect to all agents. Will try #{tries_left} more times"
-      break if counter > 60
-      sleep 5
-    end
-    accumulator = []
-    vm_hashes.each do |vm_hash|
-      if ssh_test.call(vm_hash)
-        STDOUT.puts "VM ready: #{vm_hash['NAME']}."
-        accumulator << vm_hash
-      else
-        STDERR.puts "Unable to establish SSH connection to VM: #{vm_hash}."
-      end
-    end
-    accumulator
+  def ssh_ready?(vm_hash)
+    ip_address = vm_hash['TEMPLATE']['NIC']['IP']
+    raise VMIPError, "IP not found: #{vm_hash}." if ip_address.nil?
+    system("#{ssh_prefix} root@#{ip_address} -t 'uptime'")
   end
 
   ##
@@ -93,12 +78,41 @@ class BnclController
   end
 
   def run(vm_hashes)
-    ready_vms = ssh_ready?(vm_hashes)
-    final_commands = generate_ssh_commands(ready_vms)
-    final_commands.each do |command| # All the commands for a VM
-      STDOUT.puts "Running command: #{command}."
-      system(command)
+    vms_left = vm_hashes.length
+    action_log.info "About to provision #{vms_left} machines"
+    ssh_action = lambda do |vm_hash|
+      if ssh_ready?(vm_hash)
+        final_commands = generate_ssh_commands(vm_hash)
+        return system(final_commands)
+      else
+        return false;
+      end
     end
+    accumulator = []
+    vm_hashes.each do |vm_hash|
+      counter = 0
+      while !ssh_action.call(vm_hash)
+        counter += 1
+        tries_left = 60 - counter
+        action_log.info "Couldn't connect to agent  #{vm_hash['NAME']}. Will try #{tries_left} more times"
+        break if counter > 60
+        sleep 5
+      end
+      if counter < 61
+        vms_left = vms_left - 1
+        action_log.info "VM just provisioned: #{vm_hash['NAME']}."
+        STDOUT.puts "Number of vms left to provision: #{vms_left}."
+        accumulator << vm_hash
+      else
+        action_log.error "Unable to provision VM: #{vm_hash}."
+      end
+    end
+    if vms_left != 0
+      action_log.error "ERROR: Failed to provision #{vms_left} vms."
+    else
+      action_log.info "Successfully provisioned #{accumulator.length} vms."
+    end
+    accumulator
   end
 
 end

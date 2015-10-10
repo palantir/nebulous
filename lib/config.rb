@@ -13,7 +13,7 @@ class PoolConfig
 
     ON = ::OpenNebula # Need a shorter constant
 
-    @@base_types = [String, Integer, Float, true.class, false.class]
+    @@base_types = [String, Integer, Float, true.class, false.class, nil]
 
     @@instantiation_wait_count = 300 # Try to see if the VM is running this many times before giving up
 
@@ -195,31 +195,28 @@ class PoolConfig
 
     ##
     # Try up to 20 times to get the state and then re-raise the exception if there was one.
-
+    # reurn vm_hash
     def opennebula_state
       counter = 0
       begin
         pool = ON::VirtualMachinePool.new(Utils.client, auth_user_id)
         result = pool.info
-        STDOUT.puts "result #{result}"
         if ON.is_error?(result)
           require 'pp'
           pp result
           raise PoolInformationError, "Unable to get pool information. Something is wrong with RPC endpoint."
         end
         vms = pool.to_hash['VM_POOL']['VM']
-        STDOUT.puts "vms #{vms}"
         everything = vms.nil? ? [] : (Array === vms ? vms : [vms])
         # Filter things down to just this pool
         everything.select do |vm|
-          STDOUT.puts "name #{name}"
           pool = vm['USER_TEMPLATE']['POOL']
           name_match = vm['NAME'].include?(name)
           if pool.nil?
             name_match
           else
-            STDOUT.puts "poolname #{pool}"
-            name_match && pool == name
+            #change to keep name
+            name_match && name
           end
         end
       rescue Exception => ex
@@ -390,6 +387,25 @@ class PoolConfig
   end
 
   ##
+  # Contains configuration parameters for bamboo pools.
+
+  class QuickRunner < ConfigurationType
+
+    @@configuration_items = ['script', 'name', 'arguments']
+
+    def initialize(options = {}, decryption_key_path = nil)
+      super(options, decryption_key_path)
+      validate
+    end
+
+    def quickrunner
+      QuickProvisioner.new(script, arguments = nil)
+    end
+
+  end
+
+
+  ##
   # Load a yaml file, parse it, and create the right configuration instance
 
   def self.load(filepath, key_path = nil)
@@ -404,6 +420,10 @@ class PoolConfig
     else
       raise UnknownConfigurationTypeError, "Unknown configuration type: #{config_type}."
     end
+  end
+
+  def self.quickRunner(raw_data)
+      QuickRunner.new(raw_data, key_path = nil)
   end
 
 end

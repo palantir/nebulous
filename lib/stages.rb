@@ -199,8 +199,8 @@ module Stages
     def generate_file(opts = {})
       super(opts)
       prefix = opts[:prefix]
-      STDOUT.puts "Generating file for script command."
       target = File.join(prefix, "stage-#{@stage_number}.sh")
+      STDOUT.puts "Generating file stage-#{@stage_number}.sh for #{@path}."
       `cp #{@path} #{target}`
     end
 

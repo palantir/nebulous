@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require_relative '../vendor/bundle/bundler/setup'
-['./errors', './config', './provisioner', './stages', './utils', './controller', './jenkins', './bamboo', './operationcenter', './checker'].each do |relative|
+['./errors', './config', './provisioner', './stages', './utils', './controller', './jenkins', './bamboo', './operationcenter', './checker', './quickrunner'].each do |relative|
   require_relative relative
 end
 ['trollop'].each do |g|
@@ -45,7 +45,6 @@ end
 
 def partition_switch(config, opts, actions)
   provisioner = config.provisioner
-  STDOUT.puts "provisioner is #{provisioner}"
   if (partition = opts[:partition])
     forking_provisioner_actions(provisioner, partition, actions)
   else
@@ -59,6 +58,7 @@ end
 valid_actions = {
   # Check vm state
   'check' => lambda do |config, opts|
+    #return checker object
     checker = config.checker
     vm_hashes = checker.opennebula_state
     id_filter = opts[:synthetic]
@@ -175,9 +175,15 @@ valid_actions = {
 
 opts = Trollop::options do
   opt :configuration, "Location of pool configuration yaml file",
-   :required => true, :type => :string, :multi => false
+   :required => false, :type => :string, :multi => false
+  opt :file, "Script to execute",
+   :required => false, :type => :string, :multi => false
+  opt :pool, "OpenNebula pool to provision.",
+   :required => false, :type => :string, :multi => false
+  opt :arguments, "Script arguments.",
+   :required => false, :type => :strings, :multi => false
   opt :action, "Type of action, e.g. #{valid_actions.keys.join(', ')}. Can be repeated several times",
-   :required => true, :type => :string, :multi => true
+   :required => false, :type => :string, :multi => true
   opt :decryption_key, "File path for the decryption key for secure configurations",
    :required => false, :type => :string, :multi => false
   opt :synthetic, "Provide a list of IDs to act on",
@@ -188,15 +194,30 @@ opts = Trollop::options do
     :required => false, :type => :flag, :multi => false
 end
 # Instantiate the objects we might need, and pass in the decryption key if there is one
-config = PoolConfig.load(opts[:configuration], opts[:decryption_key])
-# Uniquify the actions and verify it is something we can work with
-opts[:action].uniq!
-opts[:action].each do |action|
+if !opts[:action].empty?
+  #return cnfig type with Provisioner and checker
+  config = PoolConfig.load(opts[:configuration], opts[:decryption_key])
+  opts[:action].uniq!
+  opts[:action].each do |action|
   case action
   when *valid_actions.keys
   else
     raise UnknownActionError, "Unknown action: #{action}."
   end
+  #action calls method (lambda) with config file params and opts
+  opts[:action].each {|action| valid_actions[action].call(config, opts)}
 end
 # Now go through the actions and actually perform it
-opts[:action].each {|action| valid_actions[action].call(config, opts)}
+else
+  if opts[:arguments].nil?
+     opts[:arguments] = ""
+  end
+  quick_runner = PoolConfig.quickRunner({"script" => opts[:file], "name" => opts[:pool], "arguments" => opts[:arguments]})
+  vm_hashes = quick_runner.opennebula_state
+  id_filter = opts[:synthetic]
+  if id_filter
+    vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+  end
+  quick_runner.quickrunner.run(vm_hashes)
+end
+# Uniquify the actions and verify it is something we can work with
