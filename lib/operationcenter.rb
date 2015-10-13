@@ -44,7 +44,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
                                       :password => jenkins_password, :server_url => jenkins)
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent - #{agent_ip}"
+      agent_name = "agent-#{agent_ip}"
       jobXml = File.open("slave.xml")
       doc = Nokogiri::XML(jobXml)
       host  = doc.at_css "host"
@@ -87,7 +87,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     vm_hashes.each do |vm_hash|
       counter = 0
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent - #{agent_ip}"
+      agent_name = "agent-#{agent_ip}"
       #First disable job.
       jobXml = File.open("slave.xml")
       doc = Nokogiri::XML(jobXml)
@@ -136,7 +136,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     vm_hashes.each do |vm_hash|
       counter = 0
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent - #{agent_ip}"
+      agent_name = "agent-#{agent_ip}"
       #First disable job.
       jobXml = File.open("slave.xml")
       doc = Nokogiri::XML(jobXml)

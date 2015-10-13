@@ -27,6 +27,8 @@ class BnclController
     required_pool_size = @configuration.count
     actual_pool_size = opennebula_state.length # TODO: Figure out whether we need to filter to just running VMs
     delta = required_pool_size - actual_pool_size
+    if delta = 0
+      STDOUT.puts "Already provisioned #{required_pool_size} vms."
   end
 
   ##

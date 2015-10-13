@@ -176,14 +176,14 @@ valid_actions = {
 opts = Trollop::options do
   opt :configuration, "Location of pool configuration yaml file",
    :required => false, :type => :string, :multi => false
-  opt :file, "Script to execute",
+  opt :type, "Type of provisioner (script or directory)",
+   :required => false, :type => :string, :multi => false
+  opt :file, "Script of directory to execute",
    :required => false, :type => :string, :multi => false
   opt :pool, "OpenNebula pool to provision.",
    :required => false, :type => :string, :multi => false
-  opt :arguments, "Script arguments.",
-   :required => false, :type => :strings, :multi => false
   opt :action, "Type of action, e.g. #{valid_actions.keys.join(', ')}. Can be repeated several times",
-   :required => false, :type => :string, :multi => true
+   :required => false, :type => :string, :multi => true, :default => "quickrunner"
   opt :decryption_key, "File path for the decryption key for secure configurations",
    :required => false, :type => :string, :multi => false
   opt :synthetic, "Provide a list of IDs to act on",
@@ -194,7 +194,7 @@ opts = Trollop::options do
     :required => false, :type => :flag, :multi => false
 end
 # Instantiate the objects we might need, and pass in the decryption key if there is one
-if !opts[:action].empty?
+if !opts[:action].include?("quickrunner")
   #return cnfig type with Provisioner and checker
   config = PoolConfig.load(opts[:configuration], opts[:decryption_key])
   opts[:action].uniq!
@@ -209,10 +209,7 @@ if !opts[:action].empty?
 end
 # Now go through the actions and actually perform it
 else
-  if opts[:arguments].nil?
-     opts[:arguments] = ""
-  end
-  quick_runner = PoolConfig.quickRunner({"script" => opts[:file], "name" => opts[:pool], "arguments" => opts[:arguments]})
+  quick_runner = PoolConfig.quickRunner({"type" => opts[:type], "path" => opts[:file], "name" => opts[:pool]})
   vm_hashes = quick_runner.opennebula_state
   id_filter = opts[:synthetic]
   if id_filter

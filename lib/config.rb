@@ -391,7 +391,7 @@ class PoolConfig
 
   class QuickRunner < ConfigurationType
 
-    @@configuration_items = ['script', 'name', 'arguments']
+    @@configuration_items = ['type','path', 'name']
 
     def initialize(options = {}, decryption_key_path = nil)
       super(options, decryption_key_path)
@@ -399,7 +399,7 @@ class PoolConfig
     end
 
     def quickrunner
-      QuickProvisioner.new(script, arguments = nil)
+      QuickProvisioner.new(type, path)
     end
 
   end

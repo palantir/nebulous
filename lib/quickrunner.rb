@@ -8,8 +8,12 @@ require_relative './controller'
 class QuickProvisioner < BnclController
 
     
-  def initialize(script_path, arguments = nil)
-    configuration = [{"type" => "directory", "path" => script_path, "arguments" => arguments}]
+  def initialize(type = nil, path)
+    if type.nil?
+      STDERR.puts "Please specify 'script' or 'directory' type."
+      return 1
+    end
+    configuration = [{"type" => type, "path" => path, "arguments" => []}]
     @configuration = configuration
     configuration.each_with_index {|stage, index| Stages.from_config(stage, index)}
   end

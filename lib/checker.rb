@@ -22,9 +22,9 @@ class Checker
       stage_collection = Stages::StageCollection.new(*stages(@configuration.check))
       stage_collection.generate_files
       ip_address = vm_hash['TEMPLATE']['NIC']['IP']
-      STDOUT.puts "Generating provisioning commands for #{vm_hash['NAME']} and IP #{ip_address}."
+      STDOUT.puts "Generating check commands for #{vm_hash['NAME']} and IP #{ip_address}."
       stage_collection.scp_files(ip_address)
-      STDOUT.puts "Running commands"
+      STDOUT.puts "Running checks"
       stage_collection.final_command(ip_address)
     end
   end
