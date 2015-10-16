@@ -29,6 +29,7 @@ class BnclController
     delta = required_pool_size - actual_pool_size
     if delta = 0
       STDOUT.puts "Already provisioned #{required_pool_size} vms."
+    end
   end
 
   ##
@@ -96,7 +97,7 @@ class BnclController
       while !ssh_action.call(vm_hash)
         counter += 1
         tries_left = 60 - counter
-        action_log.info "Couldn't connect to agent  #{vm_hash['NAME']}. Will try #{tries_left} more times"
+        action_log.info "Couldn't connect to agent #{vm_hash['NAME']}. Will try #{tries_left} more times"
         break if counter > 60
         sleep 5
       end
@@ -110,9 +111,9 @@ class BnclController
       end
     end
     if vms_left != 0
-      action_log.error "ERROR: Failed to provision #{vms_left} vms."
+      STDOUT.puts "ERROR: Failed to provision #{vms_left} vms."
     else
-      action_log.info "Successfully provisioned #{accumulator.length} vms."
+      STDOUT.puts "Successfully provisioned #{accumulator.length} vms."
     end
     accumulator
   end

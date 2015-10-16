@@ -33,6 +33,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
   # After provisioning perform the registration to jenkins.
 
   def registration(vm_hashes)
+    vm_name = @configuration.name
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
     jenkins = @configuration.jenkins
@@ -43,7 +44,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
                                       :password => jenkins_password, :server_url => jenkins)
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent-#{agent_ip}"
+      agent_name = "vm_name-#{agent_ip}"
       node = ::JenkinsApi::Client::Node.new(client)
       node.create_dumb_slave({
         :name => agent_name, :remote_fs => '/home/jenkins',

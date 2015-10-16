@@ -209,6 +209,7 @@ if !opts[:action].include?("quickrunner")
 end
 # Now go through the actions and actually perform it
 else
+  
   quick_runner = PoolConfig.quickRunner({"type" => opts[:type], "path" => opts[:file], "name" => opts[:pool]})
   vm_hashes = quick_runner.opennebula_state
   id_filter = opts[:synthetic]

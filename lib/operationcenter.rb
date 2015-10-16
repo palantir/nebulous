@@ -35,6 +35,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
 
   def registration(vm_hashes)
     STDOUT.puts "Registering shared slave to Jenkins Operation Center."
+    vm_name = @configuration.name
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
     jenkins = @configuration.jenkins
@@ -45,7 +46,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
                                       :password => jenkins_password, :server_url => jenkins)
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent-#{agent_ip}"
+      agent_name = "#{vm_name}-#{agent_ip}"
       slave_uid = SecureRandom.uuid
       jobXml = File.open("slave.xml")
       doc = Nokogiri::XML(jobXml)
