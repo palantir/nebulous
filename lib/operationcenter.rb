@@ -3,6 +3,7 @@ require_relative './errors'
 require_relative './provisioner'
 require 'jenkins_api_client'
 require 'nokogiri'
+require 'securerandom'
 
 class OperationCenterProvisioner < Provisioner::ProvisionerType
 
@@ -45,12 +46,15 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
       agent_name = "agent-#{agent_ip}"
+      slave_uid = SecureRandom.uuid
       jobXml = File.open("slave.xml")
       doc = Nokogiri::XML(jobXml)
       host  = doc.at_css "host"
       host.content = agent_ip
       credentialsid = doc.at_css "credentialsId"
       credentialsid.content = credentials_id
+      uid  = doc.at_css "uid"
+      uid.content = slave_uid
       jobXml = doc.to_html
       job = ::JenkinsApi::Client::Job.new(client)
       job_created = false
