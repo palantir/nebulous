@@ -111,7 +111,7 @@ class BnclController
     if vms_left != 0
       STDOUT.puts "ERROR: Failed to provision #{vms_left} vms."
     else
-      STDOUT.puts "Successfully provisioned #{accumulator.length} vms."
+      STDOUT.puts "Successfully provisioned #{vm_hashes.length} vms."
     end
     run_status
   end
