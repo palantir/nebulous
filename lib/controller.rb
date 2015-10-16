@@ -27,7 +27,7 @@ class BnclController
     required_pool_size = @configuration.count
     actual_pool_size = opennebula_state.length # TODO: Figure out whether we need to filter to just running VMs
     delta = required_pool_size - actual_pool_size
-    if delta = 0
+    if delta == 0
       STDOUT.puts "Already provisioned #{required_pool_size} vms."
     end
   end
@@ -83,31 +83,29 @@ class BnclController
   def run(vm_hashes)
     vms_left = vm_hashes.length
     action_log.info "About to provision #{vms_left} machines"
+    run_status = 0
     ssh_action = lambda do |vm_hash|
-      if ssh_ready?(vm_hash)
         final_commands = generate_ssh_commands(vm_hash)
-        return system(final_commands)
-      else
-        return false;
-      end
+        result = system(final_commands)
+        STDOUT.puts "Result #{result}"
+        return result
     end
-    accumulator = []
     vm_hashes.each do |vm_hash|
       counter = 0
-      while !ssh_action.call(vm_hash)
+      while !ssh_ready?(vm_hash)
         counter += 1
         tries_left = 60 - counter
         action_log.info "Couldn't connect to agent #{vm_hash['NAME']}. Will try #{tries_left} more times"
         break if counter > 60
         sleep 5
       end
-      if counter < 61
+      if counter < 61 && ssh_action.call(vm_hash)
         vms_left = vms_left - 1
         action_log.info "VM just provisioned: #{vm_hash['NAME']}."
         STDOUT.puts "Number of vms left to provision: #{vms_left}."
-        accumulator << vm_hash
       else
         action_log.error "Unable to provision VM: #{vm_hash}."
+        run_status = 1
       end
     end
     if vms_left != 0
@@ -115,7 +113,7 @@ class BnclController
     else
       STDOUT.puts "Successfully provisioned #{accumulator.length} vms."
     end
-    accumulator
+    run_status
   end
 
 end

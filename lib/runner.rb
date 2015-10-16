@@ -65,7 +65,9 @@ valid_actions = {
     if id_filter
       vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
     end
-    checker.run(vm_hashes)
+    if checker.run(vm_hashes) == 1
+      exit 1
+    end
   end,
   # Clean up stuff on the open nebula side because we no longer see them on the CI side
   'garbage-collect' => lambda do |config, opts|
@@ -216,6 +218,8 @@ else
   if id_filter
     vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
   end
-  quick_runner.quickrunner.run(vm_hashes)
+  if quick_runner.quickrunner.run(vm_hashes) == 1
+    exit 1
+  end
 end
 # Uniquify the actions and verify it is something we can work with

@@ -241,7 +241,7 @@ module Stages
     def runner_command
       dir = "stage-#{@stage_number}"
       script_arguments = @arguments.map {|arg| "\"#{arg}\""}.join(' ')
-      "pushd #{dir}; bash ./setup.sh #{script_arguments}; popd"
+      "pushd #{dir}; bash ./setup.sh #{script_arguments}; if [[ $? -ne 0 ]]; then exit 1; fi;popd"
     end
 
   end
