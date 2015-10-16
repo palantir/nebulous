@@ -30,6 +30,7 @@ class BnclController
     if delta == 0
       STDOUT.puts "Already provisioned #{required_pool_size} vms."
     end
+    delta
   end
 
   ##
