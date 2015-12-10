@@ -65,8 +65,14 @@ valid_actions = {
     if id_filter
       vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
     end
-    if checker.run(vm_hashes) == 1
-      exit 1
+    vm_hashes.each do |vm_hash|
+      ip = vm_hash['TEMPLATE']['NIC']['IP']
+      `ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 root@#{ip} -t 'rm -rf /root/bncl-check-results'`
+    end
+    checker.run(vm_hashes)
+    vm_hashes.each do |vm_hash|
+      ip = vm_hash['TEMPLATE']['NIC']['IP']
+      `scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r root@#{ip}:/root/bncl-check-results /var/lib/jenkins/tmp-results/#{ip}`
     end
   end,
   # Clean up stuff on the open nebula side because we no longer see them on the CI side
