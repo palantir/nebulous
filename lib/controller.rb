@@ -83,8 +83,7 @@ class BnclController
 
   def run(vm_hashes)
     vms_left = vm_hashes.length
-    action_log.info "About to provision #{vms_left} machines"
-    run_status = 0
+    run_results = []
     ssh_action = lambda do |vm_hash|
         final_commands = generate_ssh_commands(vm_hash)
         result = system(final_commands)
@@ -96,17 +95,15 @@ class BnclController
       while !ssh_ready?(vm_hash)
         counter += 1
         tries_left = 60 - counter
-        action_log.info "Couldn't connect to agent #{vm_hash['NAME']}. Will try #{tries_left} more times"
         break if counter > 60
         sleep 5
       end
       if counter < 61 && ssh_action.call(vm_hash)
         vms_left = vms_left - 1
-        action_log.info "VM just provisioned: #{vm_hash['NAME']}."
+        STDOUT.puts "VM just provisioned: #{vm_hash['NAME']}."
         STDOUT.puts "Number of vms left to provision: #{vms_left}."
       else
-        action_log.error "Unable to provision VM: #{vm_hash}."
-        run_status = 1
+        run_results << vm_hash
       end
     end
     if vms_left != 0
@@ -114,7 +111,7 @@ class BnclController
     else
       STDOUT.puts "Successfully provisioned #{vm_hashes.length} vms."
     end
-    run_status
+    run_results
   end
 
 end

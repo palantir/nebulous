@@ -35,9 +35,11 @@ end
 def provisioner_actions(provisioner, actions = [])
   raise EmptyActionArray, "Must provide at least one action to perform with provisioner." if actions.empty?
   vm_hashes = provisioner.instantiate
+  run_results = []
   actions.each do |action|
-    provisioner.send(action, vm_hashes)
+    run_results = provisioner.send(action, vm_hashes)
   end
+  run_results
 end
 
 ##
@@ -48,7 +50,7 @@ def partition_switch(config, opts, actions)
   if (partition = opts[:partition])
     forking_provisioner_actions(provisioner, partition, actions)
   else
-    provisioner_actions(provisioner, actions)
+    run_results = provisioner_actions(provisioner, actions)
   end
 end
 
@@ -83,12 +85,24 @@ valid_actions = {
   # Spin up VMs and provision but don't register
   'provision' => lambda do |config, opts|
     actions = [:run]
-    partition_switch(config, opts, actions)
+    run_results = partition_switch(config, opts, actions)
+    run_results.each do |failed_vm|
+      ip = failed_vm['TEMPLATE']['NIC']['IP']
+      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before regustering the vm pool."
+    end
   end,
-  # Spin up VMs, provision, and register them
+  # Spin up VMs, provision, and register the successful ones
   'replenish' => lambda do |config, opts|
-    actions = [:run, :registration]
-    partition_switch(config, opts, actions)
+    actions = [:run]
+    run_results = partition_switch(config, opts, actions)
+    run_results.each do |failed_vm|
+      ip = failed_vm['TEMPLATE']['NIC']['IP']
+      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before regustering the vm pool."
+    end
+    if run_results.empty?
+      actions = [:registration]
+      partition_switch(config, opts, actions)
+    end
   end,
   # Get what exists and try to re-register it
   're-register' => lambda do |config, opts|
@@ -107,7 +121,11 @@ valid_actions = {
     if id_filter
       vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
     end
-    provisioner.run(vm_hashes)
+    run_results = provisioner.run(vm_hashes)
+    run_results.each do |failed_vm|
+      ip = failed_vm['TEMPLATE']['NIC']['IP']
+      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before registering"
+    end
   end,
   'dump-state' => lambda do |config, opts|
     provisioner = config.provisioner
