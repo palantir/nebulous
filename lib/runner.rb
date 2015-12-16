@@ -63,7 +63,7 @@ valid_actions = {
     vm_hashes = checker.opennebula_state
     id_filter = opts[:synthetic]
     if id_filter
-      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['ID'])}
     end
     vm_hashes.each do |vm_hash|
       ip = vm_hash['TEMPLATE']['NIC']['IP']
@@ -96,7 +96,7 @@ valid_actions = {
     vm_hashes = provisioner.opennebula_state
     id_filter = opts[:synthetic]
     if id_filter
-      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
     end
     provisioner.registration(vm_hashes)
   end,
@@ -105,7 +105,7 @@ valid_actions = {
     vm_hashes = provisioner.opennebula_state
     id_filter = opts[:synthetic]
     if id_filter
-      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
     end
     provisioner.run(vm_hashes)
   end,
@@ -128,11 +128,11 @@ valid_actions = {
     vm_hashes = provisioner.opennebula_state
     id_filter = opts[:synthetic]
     if id_filter
-      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
     end
     unless opts[:force]
       STDOUT.puts "You are about to kill a bunch of VMs:"
-      ids = vm_hashes.map {|vm_hash| vm_hash['ID']}.join(', ')
+      ids = vm_hashes.map {|vm_hash| vm_hash['TEMPLATE']['NIC']['IP']}.join(', ')
       STDOUT.puts ids
       STDOUT.write "Are you sure you want to proceed? (y/n): "
       confirmation = STDIN.gets.strip.downcase
@@ -145,7 +145,7 @@ valid_actions = {
     end
     vm_hashes.each do |vm_hash|
       vm = Utils.vm_by_id(vm_hash['ID'])
-      STDOUT.puts "Killing VM: #{vm_hash['ID']}."
+      STDOUT.puts "Killing VM: #{vm_hash['TEMPLATE']['NIC']['IP']}."
       vm.delete
     end
     provisioner.deleteJobs(vm_hashes)
@@ -155,14 +155,14 @@ valid_actions = {
     vm_hashes = provisioner.opennebula_state
     id_filter = opts[:synthetic]
     if id_filter
-      vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
     end
     vms = vm_hashes.map {|h| vm = Utils.vm_by_id(h['ID']); vm.info; vm}
     vms.reject! {|vm| vm.status.include?('run')}
     vm_hashes = vms.map {|vm| vm.to_hash['VM']}
     unless opts[:force]
       STDOUT.puts "You are about to kill a bunch of VMs:"
-      ids = vm_hashes.map {|vm_hash| vm_hash['ID']}.join(', ')
+      ids = vm_hashes.map {|vm_hash| vm_hash['TEMPLATE']['NIC']['IP']}.join(', ')
       STDOUT.puts ids
       STDOUT.write "Are you sure you want to proceed? (y/n): "
       confirmation = STDIN.gets.strip.downcase
@@ -175,7 +175,7 @@ valid_actions = {
     end
     vm_hashes.each do |vm_hash|
       vm = Utils.vm_by_id(vm_hash['ID'])
-      STDOUT.puts "Killing VM: #{vm_hash['ID']}."
+      STDOUT.puts "Killing VM: #{vm['TEMPLATE']['NIC']['IP']}."
       vm.delete
     end
   end
@@ -222,7 +222,7 @@ else
   vm_hashes = quick_runner.opennebula_state
   id_filter = opts[:synthetic]
   if id_filter
-    vm_hashes.select! {|vm| id_filter.include?(vm['ID'])}
+    vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
   end
   if quick_runner.quickrunner.run(vm_hashes) == 1
     exit 1
