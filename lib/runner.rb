@@ -80,7 +80,7 @@ valid_actions = {
     vm_hashes = checker.opennebula_state
     id_filter = opts[:synthetic]
     if id_filter
-      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['ID'])}
+      vm_hashes.select! {|vm_hash| id_filter.include?(vm_hash['TEMPLATE']['NIC']['IP'])}
     end
     vm_hashes.each do |vm_hash|
       ip = vm_hash['TEMPLATE']['NIC']['IP']
