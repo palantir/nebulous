@@ -69,7 +69,7 @@ valid_actions = {
     end
     vm_hashes.each do |vm_hash|
       ip = vm_hash['TEMPLATE']['NIC']['IP']
-      `ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 root@#{ip} -t 'rm -rf /root/bncl-check-results'`
+      `ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 root@#{ip} -t 'rm -rf /root/bncl-check-results; mkdir /root/bncl-check-results;'`
     end
     checker.run(vm_hashes)
     vm_hashes.each do |vm_hash|
