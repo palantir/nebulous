@@ -38,8 +38,23 @@ def provisioner_actions(provisioner, actions = [])
   run_results = []
   actions.each do |action|
     run_results = provisioner.send(action, vm_hashes)
+    run_results.each do |failed_vm|
+      ip = failed_vm['TEMPLATE']['NIC']['IP']
+      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before registering the vm pool."
+    end
   end
-  run_results
+  if run_results.empty?
+    checker = config.checker
+    check_results = checker.run(vm_hashes)
+    check_results.each do |failed_vm|
+      ip = failed_vm['TEMPLATE']['NIC']['IP']
+      STDOUT.puts "{ip} failed checks. Please delete or re-provision before registering the vm pool."
+    end
+    if check_results.empty?
+      STDOUT.puts "Success! All vms were provisioned correctly and passed checks!"
+    end
+  end
+
 end
 
 ##
@@ -86,10 +101,6 @@ valid_actions = {
   'provision' => lambda do |config, opts|
     actions = [:run]
     run_results = partition_switch(config, opts, actions)
-    run_results.each do |failed_vm|
-      ip = failed_vm['TEMPLATE']['NIC']['IP']
-      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before regustering the vm pool."
-    end
   end,
   # Spin up VMs, provision, and register the successful ones
   'replenish' => lambda do |config, opts|
@@ -97,7 +108,7 @@ valid_actions = {
     run_results = partition_switch(config, opts, actions)
     run_results.each do |failed_vm|
       ip = failed_vm['TEMPLATE']['NIC']['IP']
-      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before regustering the vm pool."
+      STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before registering the vm pool."
     end
     if run_results.empty?
       actions = [:registration]
@@ -166,7 +177,6 @@ valid_actions = {
       STDOUT.puts "Killing VM: #{vm_hash['TEMPLATE']['NIC']['IP']}."
       vm.delete
     end
-    provisioner.deleteJobs(vm_hashes)
   end,
   'kill-not-running' => lambda do |config, opts|
     provisioner = config.provisioner
