@@ -2,8 +2,8 @@
 package_version="0.5.5"
 version="2.2.2"
 dir="ruby-${version}"
-if [[ ! -e ${dir} ]]; then
-  wget http://cache.ruby-lang.org/pub/ruby/2.2/${dir}.tar.gz
+if [[ ! -e ruby-2.2.2 ]]; then
+  wget http://cache.ruby-lang.org/pub/ruby/2.2/ruby-2.2.2.tar.gz
   tar xf ${dir}.tar.gz
 fi
 echo "Cleaning up."

@@ -29,12 +29,22 @@ def forking_provisioner_actions(provisioner, partition, actions = [])
   end
 end
 
+def check_actions(checker, vm_hashes)
+  check_results = checker.run(vm_hashes)
+  check_results.each do |failed_vm|
+    ip = failed_vm['TEMPLATE']['NIC']['IP']
+    STDOUT.puts "{ip} failed checks. Please delete or re-provision before registering the vm pool."
+  end
+  if check_results.empty?
+      STDOUT.puts "Success! All vms were provisioned correctly and passed checks!"
+  end
+  check_results
+end
 ##
 # Regular actions with no forking involved.
 
-def provisioner_actions(provisioner, actions = [])
+def provisioner_actions(provisioner, vm_hashes, actions = [])
   raise EmptyActionArray, "Must provide at least one action to perform with provisioner." if actions.empty?
-  vm_hashes = provisioner.instantiate
   run_results = []
   actions.each do |action|
     run_results = provisioner.send(action, vm_hashes)
@@ -43,18 +53,7 @@ def provisioner_actions(provisioner, actions = [])
       STDOUT.puts "Failed to provision #{ip}. Please delete or re-provision before registering the vm pool."
     end
   end
-  if run_results.empty?
-    checker = config.checker
-    check_results = checker.run(vm_hashes)
-    check_results.each do |failed_vm|
-      ip = failed_vm['TEMPLATE']['NIC']['IP']
-      STDOUT.puts "{ip} failed checks. Please delete or re-provision before registering the vm pool."
-    end
-    if check_results.empty?
-      STDOUT.puts "Success! All vms were provisioned correctly and passed checks!"
-    end
-  end
-
+  run_results
 end
 
 ##
@@ -62,11 +61,16 @@ end
 
 def partition_switch(config, opts, actions)
   provisioner = config.provisioner
+  vm_hashes = provisioner.instantiate
   if (partition = opts[:partition])
     forking_provisioner_actions(provisioner, partition, actions)
   else
-    run_results = provisioner_actions(provisioner, actions)
+    run_results = provisioner_actions(provisioner, vm_hashes, actions)
+    if run_results.empty?
+      check_results = check_actions(config.checker, vm_hashes)
+    end
   end
+  check_results
 end
 
 ##
@@ -86,10 +90,14 @@ valid_actions = {
       ip = vm_hash['TEMPLATE']['NIC']['IP']
       `ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 root@#{ip} -t 'rm -rf /root/bncl-check-results; mkdir /root/bncl-check-results;'`
     end
-    checker.run(vm_hashes)
+    check_results = checker.run(vm_hashes)
     vm_hashes.each do |vm_hash|
       ip = vm_hash['TEMPLATE']['NIC']['IP']
       `scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r root@#{ip}:/root/bncl-check-results /var/lib/jenkins/tmp-results/#{ip}`
+    end
+    check_results.each do |failed_vm|
+      ip = failed_vm['TEMPLATE']['NIC']['IP']
+      STDOUT.puts "#{ip} Failed checks. Please delete or re-provision."
     end
   end,
   # Clean up stuff on the open nebula side because we no longer see them on the CI side
