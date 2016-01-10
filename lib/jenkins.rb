@@ -11,6 +11,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     def initialize(delta, configuration)
       @delta = delta
       super(configuration)
+      @jenkins_node_client = ::JenkinsApi::Client::Node.new(jenkins_client)
     end
 
     def delta
@@ -29,19 +30,23 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     ForkingProvisioner.new(delta, @configuration)
   end
 
-  ##
-  # After provisioning perform the registration to jenkins.
-
-  def registration(vm_hashes)
-    vm_name = @configuration.name
+  def jenkins_client
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
     jenkins = @configuration.jenkins
     private_key_path = @configuration.private_key_path
     credentials_id = @configuration.credentials_id
+    ::JenkinsApi::Client.new(:username => jenkins_username,
+                              :password => jenkins_password, :server_url => jenkins)
+  end
+
+  ##
+  # After provisioning perform the registration to jenkins.
+
+  def registration(vm_hashes)
+    vm_name = @configuration.name
     labels = @configuration.labels
-    client = ::JenkinsApi::Client.new(:username => jenkins_username,
-                                      :password => jenkins_password, :server_url => jenkins)
+    client = @jenkins_node_client
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
       agent_name = "vm_name-#{agent_ip}"

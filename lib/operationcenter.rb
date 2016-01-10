@@ -12,6 +12,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     def initialize(delta, configuration)
       @delta = delta
       super(configuration)
+      @jenkins_node_client = ::JenkinsApi::Client.Node.new(jenkins_client)
     end
 
     def delta
@@ -30,20 +31,26 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     ForkingProvisioner.new(delta, @configuration)
   end
 
+  def jenkins_client
+    jenkins_username = @configuration.jenkins_username
+    jenkins_password = @configuration.jenkins_password
+    jenkins = @configuration.jenkins
+    private_key_path = @configuration.private_key_path
+    credentials_id = @configuration.credentials_id
+    ::JenkinsApi::Client.new(:username => jenkins_username,
+                              :password => jenkins_password, :server_url => jenkins)
+  end
+
+  def take_offline(vm)
+
+
   ##
   # After provisioning perform the registration to jenkins.
 
   def registration(vm_hashes)
     STDOUT.puts "Registering shared slave to Jenkins Operation Center."
     vm_name = @configuration.name
-    jenkins_username = @configuration.jenkins_username
-    jenkins_password = @configuration.jenkins_password
-    jenkins = @configuration.jenkins
-    credentials_id = @configuration.credentials_id
-    private_key_path = @configuration.private_key_path
-    labels = @configuration.labels
-    client = ::JenkinsApi::Client.new(:username => jenkins_username,
-                                      :password => jenkins_password, :server_url => jenkins)
+    client = jenkins_client
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
       agent_name = "#{vm_name}-#{agent_ip}"
@@ -81,14 +88,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
 
   def deleteJobs(vm_hashes)
     STDOUT.puts "Deleting all jobs on Jenkins."
-    jenkins_username = @configuration.jenkins_username
-    jenkins_password = @configuration.jenkins_password
-    jenkins = @configuration.jenkins
-    private_key_path = @configuration.private_key_path
-    credentials_id = @configuration.credentials_id
-    labels = @configuration.labels
-    client = ::JenkinsApi::Client.new(:username => jenkins_username,
-                                      :password => jenkins_password, :server_url => jenkins)
+    client = jenkins_client
     vm_hashes.each do |vm_hash|
       counter = 0
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
@@ -130,14 +130,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
 
   def enableJobs(vm_hashes)
     STDOUT.puts "Re-enabling all jobs on Jenkins Operation Center."
-    jenkins_username = @configuration.jenkins_username
-    jenkins_password = @configuration.jenkins_password
-    jenkins = @configuration.jenkins
-    private_key_path = @configuration.private_key_path
-    credentials_id = @configuration.credentials_id
-    labels = @configuration.labels
-    client = ::JenkinsApi::Client.new(:username => jenkins_username,
-                                      :password => jenkins_password, :server_url => jenkins)
+    client = jenkins_client
     vm_hashes.each do |vm_hash|
       counter = 0
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
