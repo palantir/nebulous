@@ -49,9 +49,8 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     client = @jenkins_node_client
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "vm_name-#{agent_ip}"
-      node = ::JenkinsApi::Client::Node.new(client)
-      node.create_dumb_slave({
+      agent_name = "#{vm_name}-#{agent_ip}"
+      client.create_dumb_slave({
         :name => agent_name, :remote_fs => '/home/jenkins',
         :description => "Ephemeral agent meant to run only 1 job and then die.",
         :slave_host => agent_ip, :private_key_file => private_key_path,
