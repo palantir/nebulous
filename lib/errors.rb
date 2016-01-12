@@ -2,6 +2,6 @@
  :ForkingProvisionerDefinitionError, :MissingConfigurationParameterError, :NilConfigurationValueError, :NilVMError, :OpenNebulaTemplateError,
  :PathNilError, :PoolInformationError, :StageNumberNilError, :UnexpectedSecureValueError, :UnknownActionError,
  :UnknownConfigurationTypeError, :UnknownProvisioningStageError, :VMIPError, :UnknownConfigurationKeyValueError,
- :FileLocationError, :StageFileExistsError, :SeveralTemplatesMatchesError, :TemplateNotFoundError, :EmptyActionArray, :SharedSlaveNotCreatedError].each do |error|
+ :FileLocationError, :StageFileExistsError, :SeveralTemplatesMatchesError, :TemplateNotFoundError, :EmptyActionArray, :SharedSlaveNotCreatedError, :SharedSlaveNotUpdatedError].each do |error|
   Object.const_set(error.to_s, Class.new(StandardError))
 end

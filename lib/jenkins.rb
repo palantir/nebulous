@@ -63,6 +63,33 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     #TO-DO
   end
 
+  def take_offline?(vm)
+    ip = vm.to_hash['TEMPLATE']['NIC']['IP']
+    client = @jenkins_node_client
+    list_nodes = client.list(filter='#{ip}')
+    if list_nodes.size > 1
+      abort("Only delete one node at a time!")
+    else
+      node_name = list_nodes.first
+      count = 0
+      begin
+        client.toggle_temporarilyOffline(node_name, reason="Reaping old node.")
+        rescue
+          STDOUT.puts "retrying to take node #{node_name} offline."
+          count += 1
+          sleep 30
+          retry
+      end while !client.is_temporarilyOffline?(node_name) && count < 30
+      if client.is_temporarilyOffline?(node_name)
+        vm.delete
+        return true
+      else
+        STDOUT.puts "Failed to take #{node_name} offline."
+        client.delete(node_name)
+        return false
+      end
+    end
+  end
   ##
   # Garbage collection means asking Jenkins what nodes it currently has and then performing
   # the cleanup on the OpenNebula side. Don't clean anything that is younger than 5 minutes.

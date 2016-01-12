@@ -82,12 +82,14 @@ class BnclController
   end
 
   def run(vm_hashes)
+    if vm_hashes.empty?
+      STDOUT.puts "No VMs to provision, returning null"
+    end
     vms_left = vm_hashes.length
-    run_results = []
+    run_results = Hash['SUCCESS', [], 'FAILED', []] 
     ssh_action = lambda do |vm_hash|
         final_commands = generate_ssh_commands(vm_hash)
         result = system(final_commands)
-        STDOUT.puts "Result #{result}"
         return result
     end
     vm_hashes.each do |vm_hash|
@@ -100,10 +102,11 @@ class BnclController
       end
       if counter < 61 && ssh_action.call(vm_hash)
         vms_left = vms_left - 1
+        run_results['SUCCESS'].push(vm_hash)
         STDOUT.puts "VM just provisioned: #{vm_hash['NAME']}."
         STDOUT.puts "Number of vms left to provision: #{vms_left}."
       else
-        run_results << vm_hash
+        run_results['FAILED'].push(vm_hash)
       end
     end
     if vms_left != 0
@@ -111,6 +114,7 @@ class BnclController
     else
       STDOUT.puts "Successfully provisioned #{vm_hashes.length} vms."
     end
+    STDOUT.puts "***** returning run result #{run_results['SUCCESS']}"
     run_results
   end
 

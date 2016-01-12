@@ -35,6 +35,46 @@ class BambooProvisioner < Provisioner::ProvisionerType
   def registration(vm_hashes)
   end
 
+  def job_running?(bamboo_username, bamboo_password, agent_url)
+    `curl -b bamboo-cookies.txt -c bamboo-cookies.txt -s -u #{bamboo_username}:#{bamboo_password} #{agent_url} | grep 'icon-building-06.gif'`
+    if $?.exitstatus.zero?
+        return true
+    end
+    return false
+  end
+
+  def take_offline?(vm)
+    vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
+    bamboo = @configuration.bamboo
+    bamboo_username = @configuration.bamboo_username
+    bamboo_password = @configuration.bamboo_password
+    endpoint = (bamboo[-1] == 47 || bamboo[-1] == '/') ?
+    bamboo + 'agent/viewAgents.action' : bamboo + '/agent/viewAgents.action'
+    agent_url = get_single_agent_url(bamboo, bamboo_username, bamboo_password, endpoint, vm.to_hash['NAME'])
+    count = 0
+    # Query agent for 15 minutes at 30 sec intervals or until it is idle
+    while count < 30 || job_running?(bamboo_username, bamboo_password, agent_url)
+      sleep 30
+      count+=1
+    end
+
+    if !job_running?(bamboo_username, bamboo_password, agent_url)
+      STDOUT.puts "Making sure self-killer is not running: #{vm_ip}."
+      `#{ssh_prefix} root@#{vm_ip} -t 'while [[ $(ps aux | grep "self-disable" | grep -v grep)]]; do sleep 60; echo "self killer running"; done'`
+      STDOUT.puts "Stopping agent before killing VM: #{vm_ip}."
+      `#{ssh_prefix} root@#{vm_ip} -t './bamboo-agent-home/bin/bamboo-agent.sh stop'` 
+      STDOUT.puts "Making sure bamboo is stopped: #{vm_ip}."
+      `#{ssh_prefix} root@#{vm_ip} -t 'while [[ $(ps aux | grep bamboo | grep -v grep) ]]; do sleep 2; echo "Bamboo still up"; done'`
+      STDOUT.puts "Dumping cfg.xml file:"
+      cfg_file = "cfg.xml"
+      `#{ssh_prefix} root@#{vm_ip} -t 'cat ./bamboo-agent-home/bamboo-agent.cfg.xml' > #{cfg_file}`
+      STDOUT.puts "Killing VM: #{vm_hash['NAME']}, #{vm_hash['ID']}, #{vm_ip}."
+      vm = Utils.vm_by_id(vm_hash['ID'])
+      vm.delete
+      return true
+    end
+    return false
+  end
   ##
   # Garbage collection through HTTP is a pain and we need to play nice with any other nodes on the same master that
   # are offline.
@@ -172,6 +212,22 @@ class BambooProvisioner < Provisioner::ProvisionerType
     return agent_full_urls
   end
 
+  ##
+  # Clean up all the offline agents until we reach a fixed point.
+
+  def get_single_agent_url(bamboo, bamboo_username, bamboo_password, endpoint, agent_name)
+    raw_data = `curl -b bamboo-cookies.txt -c bamboo-cookies.txt -s -u '#{bamboo_username}':'#{bamboo_password}' '#{endpoint}' | grep '/admin/agent/viewAgent.action?agentId=' | grep #{agent_name}`
+    unless $?.exitstatus.zero?
+      STDERR.puts "Could not get agent data: #{endpoint}."
+      `curl -b bamboo-cookies.txt -c bamboo-cookies.txt -s -u '#{bamboo_username}':'#{bamboo_password}' '#{endpoint}' > bamboo-agent-page.html`
+      unless $?.exitstatus.zero?
+        STDERR.puts "Can not access bamboo server. This is definitely a problem."
+        raise BambooMasterServerError, "Could not access bamboo server: #{endpoint}."
+      end
+    end
+    agent_url = raw_data.match(/href="(.+?)"/)
+    return agent_url
+  end
   @@job_summary_verification = 4
   @@job_summary_wait_time = 30
 

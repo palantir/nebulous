@@ -12,7 +12,6 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     def initialize(delta, configuration)
       @delta = delta
       super(configuration)
-      @jenkins_node_client = ::JenkinsApi::Client.Node.new(jenkins_client)
     end
 
     def delta
@@ -22,7 +21,8 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
   end
 
   def initialize(configuration)
-    super(configuration)
+    super
+    @jenkins_node_client = ::JenkinsApi::Client::Node.new(jenkins_client)
   end
 
   @@registration_wait_time = 30
@@ -41,15 +41,92 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
                               :password => jenkins_password, :server_url => jenkins)
   end
 
-  def take_offline(vm)
+  def disable_state?(agent_url)
+    `curl -u #{@configuration.jenkins_username}:#{@configuration.jenkins_password} #{agent_url} | grep 'Off-line (disabled)'`
+     if $?.exitstatus.zero?
+        STDOUT.puts "Agent is disabled."
+        return true
+     end
+     return false
+  end
 
+  def disable_agent(agent_url)
+      job = ::JenkinsApi::Client::Job.new(jenkins_client)
+      agent_config_endpoint = agent_url + "/config.xml"
+      jobXml = `curl -u #{@configuration.jenkins_username}:#{@configuration.jenkins_password} #{agent_config_endpoint}`
+      doc = Nokogiri::XML(jobXml)
+      disabled  = doc.at_css "disabled"
+      disabled.content = true
+      job_disabled = true
+      jobXml = doc.to_html
+      agent_name = agent_url.match('\/([^\/]+)\/$')[1]
+      for counter in 0..20
+        begin
+          job.create_or_update(agent_name, jobXml)
+          job_disabled = true
+          break
+        rescue
+          STDERR.puts $!, $@ # Print exception
+          sleep 5
+          next
+        end
+      end
+      if job_disabled
+        STDOUT.puts "Disabled Job Successfully"
+      else
+        raise SharedSlaveNotUpdatedError, "Shared Slave not Disabled."
+      end
+  end
 
+  def take_offline?(vm)
+     ip=vm.to_hash['TEMPLATE']['NIC']['IP']
+     list_node_urls.each do |url|
+        STDOUT.puts "#{url}"
+        if "#{url}".include?("#{ip}")
+          STDOUT.puts "IP found #{ip}"
+          url_endpoint=url.content
+          disable_agent(url_endpoint)
+          break
+        end
+      end
+  end
+  
+  def list_node_urls
+    nodes_url = @configuration.jenkins + "/api/xml"
+    raw_data = `curl -u #{@configuration.jenkins_username}:#{@configuration.jenkins_password} -k #{nodes_url}`
+    job_xml = Nokogiri::XML(raw_data)
+    agent_urls = job_xml.xpath("//job//url")
+    agent_urls
+  end
+
+  def online_agents
+    online_agents = []
+    list_node_urls.each do |url|
+      if !disable_state?(url.content)
+        agent_name = url.content.match('\/([^\/]+)\/$')[1]
+        online_agents.push(agent_name)
+      end
+    end
+    online_agents
+  end
+
+  def offline_agents
+    offline_agents = []
+    list_node_urls.each do |url|
+      if disable_state?(url.content)
+        agent_name = url.content.match('\/([^\/]+)\/$')[1]
+        offline_agents.push(agent_name)
+      end
+    end
+    offline_agents
+  end
   ##
   # After provisioning perform the registration to jenkins.
 
   def registration(vm_hashes)
     STDOUT.puts "Registering shared slave to Jenkins Operation Center."
     vm_name = @configuration.name
+    slave_label =@configuration.labels.join(' ')
     client = jenkins_client
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
@@ -60,9 +137,11 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
       host  = doc.at_css "host"
       host.content = agent_ip
       credentialsid = doc.at_css "credentialsId"
-      credentialsid.content = credentials_id
+      credentialsid.content = @configuration.credentials_id
       uid  = doc.at_css "uid"
       uid.content = slave_uid
+      label = doc.at_css "labelString"
+      label.content = slave_label
       jobXml = doc.to_html
       job = ::JenkinsApi::Client::Job.new(client)
       job_created = false
@@ -82,113 +161,82 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
       else
         raise SharedSlaveNotCreatedError, "Shared Slave not Created."
       end
-      sleep @@registration_wait_time
     end
   end
 
-  def deleteJobs(vm_hashes)
-    STDOUT.puts "Deleting all jobs on Jenkins."
+  def delete_agents(agent_names)
     client = jenkins_client
-    vm_hashes.each do |vm_hash|
-      counter = 0
-      agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent-#{agent_ip}"
-      #First disable job.
-      jobXml = File.open("slave.xml")
-      doc = Nokogiri::XML(jobXml)
-      disabled  = doc.at_css "disabled"
-      disabled.content = true
-      jobXml = doc.to_html
-      job = ::JenkinsApi::Client::Job.new(client)
-      job_created = false
-      for counter in 0..20
-        begin
-          job.create_or_update(agent_name, jobXml)
-          job_created = true
-          break
-        rescue
-            STDERR.puts $!, $@ # Print exception
-            sleep 5
-            next
-        end
-      end
-      if job_created
-        STDOUT.puts "Disabled Job Successfully"
-      else
-        raise SharedSlaveNotCreatedError, "Shared Slave not Disabled."
-      end
+    job = ::JenkinsApi::Client::Job.new(client)
+    agent_names.each do |agent_name|
+      STDOUT.puts "Deleting shared slave #{agent_name} on Jenkins."
       begin
+        disable_agent("#{@configuration.jenkins}job/#{agent_name}/")
         job.delete(agent_name) # delete job if exists
       rescue
         next
       end
-      STDOUT.puts "Deleted Job Successfully"
-    end
-  end
-##
-# Jenkins specific registration and garbage collection.
-
-  def enableJobs(vm_hashes)
-    STDOUT.puts "Re-enabling all jobs on Jenkins Operation Center."
-    client = jenkins_client
-    vm_hashes.each do |vm_hash|
-      counter = 0
-      agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "agent-#{agent_ip}"
-      #First disable job.
-      jobXml = File.open("slave.xml")
-      doc = Nokogiri::XML(jobXml)
-      disabled  = doc.at_css "disabled"
-      disabled.content = false
-      jobXml = doc.to_html
-      job = ::JenkinsApi::Client::Job.new(client)
-      job_created = false
-      for counter in 0..20
-        begin
-          job.create_or_update(agent_name, jobXml)
-          job_created = true
-          break
-        rescue
-            STDERR.puts $!, $@ # Print exception
-            sleep 5
-            next
-        end
-      end
-      if job_created
-        STDOUT.puts "Enabled Job Successfully"
-      else
-        raise SharedSlaveNotCreatedError, "Shared Slave not Enabled."
-      end
+      STDOUT.puts "Deleted share slave successfully"
     end
   end
 
-  ##
-  # Garbage collection means asking Jenkins what nodes it currently has and then performing
-  # the cleanup on the OpenNebula side. Don't clean anything that is younger than 5 minutes.
-
-  def garbage_collect
+  def garbage_collect(offline_agents)
     jenkins = @configuration.jenkins
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
-    endpoint = (jenkins[-1] == 47 || jenkins[-1] == '/') ?
-      jenkins + 'getBncl/agents' : jenkins + '/getBncl/agents'
-    agent_ips = JSON.parse(`curl -b bamboo-cookies.txt -c bamboo-cookies.txt -s -k -u #{jenkins_username}:#{jenkins_password} #{endpoint}`.strip)
-    STDOUT.puts "Found active agents: #{agent_ips.join(', ')}."
-    epoch_now = Time.now.to_i
-    garbage_agents = opennebula_state.reject do |vm_hash|
+
+    # Find all the agents that are offline on jenkins and exist in ON
+    garbage_agents = opennebula_state.select do |vm_hash|
       vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_ips.include?(vm_ip)
-    end.select do |vm_hash|
-      vm_start_time = Time.at(vm_hash['STIME'].to_i).to_i
-      beyond_time_threshold = epoch_now - vm_start_time > (5 * 60) # Older than 5 minutes
+      agent_name = "#{@configuration.name}-#{vm_ip}"
+      STDOUT.puts "Agent name: #{agent_name}"
+      offline_agents.include?(agent_name)
     end
     if garbage_agents.empty?
-      STDOUT.puts "Did not find any garbage agents."
+      STDOUT.puts "Did not find any agents offline on Jenkins but exist on ON."
+    end
+    garbage_agents.each do |vm_hash|
+      STDOUT.puts "Killing VM: #{vm_hash}."
+      begin
+        vm = Utils.vm_by_id(vm_hash['ID'])
+        vm.delete
+      rescue
+        next
+      end
+    end
+    # After deleting agents on ON side, remove on jenkins
+    delete_agents(offline_agents)
+
+    # Now find agents that exist on ON but no longer exists on Jenkins
+    garbage_agents = opennebula_state.select do |vm_hash|
+      vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
+      agent_name = "#{@configuration.name}-#{vm_ip}"
+      STDOUT.puts "Agent name: #{agent_name}"
+      !online_agents.include?(agent_name)
+    end
+    if garbage_agents.empty?
+      STDOUT.puts "Did not find any agents on ON but don't exist on jenkins."
     end
     garbage_agents.each do |vm_hash|
       STDOUT.puts "Killing VM: #{vm_hash}."
       vm = Utils.vm_by_id(vm_hash['ID'])
       vm.delete
+    end
+
+    # Find all the agents that exist online on jenkins but not in ON, 
+    # this should never happen though...
+    if opennebula_state.size < (online_agents.size + offline_agents.size)
+      opennebula_state.each do |vm_hash|
+        on_ips = []
+        on_ip = vm_hash['TEMPLATE']['NIC']['IP']
+        on_ips.push(on_ip)
+      end
+      garbage_agents = online_agents.select do |agent_name|
+        agent_ip = agent_name.match('([^-]+)$')[1]
+        !on_ips.include?(agent_ip)
+      end
+      # After deleting agents on ON side, remove on jenkins
+
+      delete_agents(garbage_agents)
     end
   end
 
