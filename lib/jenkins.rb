@@ -6,89 +6,131 @@ require 'nokogiri'
 
 class JenkinsProvisioner < Provisioner::ProvisionerType
 
-  class ForkingProvisioner < JenkinsProvisioner
-
-    def initialize(delta, configuration)
-      @delta = delta
-      super(configuration)
-      @jenkins_node_client = ::JenkinsApi::Client::Node.new(jenkins_client)
-    end
-
-    def delta
-      @delta
-    end
-
-  end
-
   def initialize(configuration)
     super
+    @jenkins_client = jenkins_client
+    @jenkins_node_client = ::JenkinsApi::Client::Node.new(@jenkins_client)
   end
 
-  @@registration_wait_time = 30
+  def offline_delta
+    delta = online_agent_ips.size - @configuration.min_pool_size
+  end
 
-  def forked_provisioner(delta)
-    ForkingProvisioner.new(delta, @configuration)
+  def online_agent_ips
+    online_agent_ips =[]
+    list_agent_names.each do |agent_name|
+      agent_ip = agent_data.match(/(.+?)-(.+?)$/)[2]
+      if !agent_disabled?(agent_name)
+        online_agent_ips.push(agent_ip)
+      end
+    end
+    online_agent_ips
   end
 
   def jenkins_client
-    jenkins_username = @configuration.jenkins_username
-    jenkins_password = @configuration.jenkins_password
-    jenkins = @configuration.jenkins
-    private_key_path = @configuration.private_key_path
-    credentials_id = @configuration.credentials_id
-    ::JenkinsApi::Client.new(:username => jenkins_username,
-                              :password => jenkins_password, :server_url => jenkins)
+    jenkins = "#{@configuration.jenkins.chomp('/')}/"
+    return ::JenkinsApi::Client.new(:username => @configuration.jenkins_username,
+                              :password => @configuration.jenkins_password, :server_url => jenkins)
+  end
+
+  def agent_disabled?(agent_name)
+    # All running machines have a progress bar object.
+    data=`curl -s -u #{@configuration.jenkins_username}:#{@configuration.jenkins_password} #{@configuration.jenkins.chomp('/')}/computer/#{agent_name}/`
+     if !data['progress-bar-done'] && data['Disconnected by BNCL']
+        STDOUT.puts "Jenkins agent is offline and not running any jobs."
+        return true
+     end
+     return false
   end
 
   ##
   # After provisioning perform the registration to jenkins.
 
   def registration(vm_hashes)
-    vm_name = @configuration.name
-    labels = @configuration.labels
-    client = @jenkins_node_client
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "#{vm_name}-#{agent_ip}"
-      client.create_dumb_slave({
+      agent_name = "#{agent_name}-#{agent_ip}"
+      @jenkins_node_client.create_dumb_slave({
         :name => agent_name, :remote_fs => '/home/jenkins',
-        :description => "Ephemeral agent meant to run only 1 job and then die.",
-        :slave_host => agent_ip, :private_key_file => private_key_path,
-        :executors => 1, :labels => labels.join(", "), :credentials_id => credentials_id})
-        sleep @@registration_wait_time
+        :description => "Bncl Agent",
+        :slave_host => agent_ip, :private_key_file => @configuration.private_key_path,
+        :executors => 1, :labels => @configuration.labels.join(", "), 
+        :credentials_id => @configuration.credentials_id,
+        :mode => @configuration.mode})
     end
   end
   
-  def deleteJobs
-    #TO-DO
+  def delete_agent(agent_name)
+    begin
+      @jenkins_client.delete(agent_name)
+    rescue
+      STDOUT.puts "Agent with name #{agent_name} did not exist."
+    end
   end
 
+  def take_offline?(vm)
+    vm_ip = vm.to_hash['TEMPLATE']['NIC']['IP']
+    list_agent_names = @jenkins_node_client.list(filter='#{vm_ip}')
+    if list_agent_names.size > 1
+      abort("Only delete one node at a time!")
+    else
+      agent_name = list_agent_names.first
+      @jenkins_node_client.toggle_temporarilyOffline(agent_name, reason="Reaping old node.")
+    end
+  end
+  
   ##
-  # Garbage collection means asking Jenkins what nodes it currently has and then performing
-  # the cleanup on the OpenNebula side. Don't clean anything that is younger than 5 minutes.
+  # Reap all the agents that are taken offline on jenkins by BNCL and that exist on ON but not on jenkins.
 
-  def garbage_collect
+  def reap_agents
     jenkins = @configuration.jenkins
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
-    endpoint = (jenkins[-1] == 47 || jenkins[-1] == '/') ?
-      jenkins + 'get
-      /agents' : jenkins + '/getBncl/agents'
-    agent_ips = JSON.parse(`curl -b bamboo-cookies.txt -c bamboo-cookies.txt -s -k -u #{jenkins_username}:#{jenkins_password} #{endpoint}`.strip)
-    STDOUT.puts "Found active agents: #{agent_ips.join(', ')}."
-    epoch_now = Time.now.to_i
-    garbage_agents = opennebula_state.reject do |vm_hash|
+    list_agent_names = jenkins_node_client.list
+    offline_agent_ips = []
+    online_agent_ips = []
+    all_agent_ips = []
+
+    # loop through agents and delete the ones that are offline. Store online/oflline in seperate lists
+    list_agent_names.each do |agent_name|
+      agent_ip = agent_data.match(/(.+?)-(.+?)$/)[2]
+      if agent_disabled?(agent_name)
+        delete_agent(agent_name)
+        offline_agent_ips.push(agent_ip)
+      else
+        online_agent_ips.push(agent_ip)
+      end
+      all_agent_ips.push(agent_ip)
+    end
+
+    # Find agents that are offline in jenkins and running on ON.
+    garbage_agents = opennebula_state.select do |vm_hash|
       vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_ips.include?(vm_ip)
-    end.select do |vm_hash|
-      vm_start_time = Time.at(vm_hash['STIME'].to_i).to_i
-      beyond_time_threshold = epoch_now - vm_start_time > (5 * 60) # Older than 5 minutes
+      offline_agent_ips.include?(vm_ip)
     end
+
     if garbage_agents.empty?
-      STDOUT.puts "Did not find any garbage agents."
+      STDOUT.puts "Did not find any offline agents that still exists on ON."
     end
+
     garbage_agents.each do |vm_hash|
-      STDOUT.puts "Killing VM: #{vm_hash}."
+      STDOUT.puts "Killing VM: #{vm_hash['NAME']}."
+      vm = Utils.vm_by_id(vm_hash['ID'])
+      vm.delete
+    end
+
+    # Find all the agents that exist on ON but not on jenkins.
+    garbage_agents = opennebula_state.select do |vm_hash|
+      vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
+      !online_agent_ips.include?(vm_ip)
+    end
+
+    if garbage_agents.empty?
+      STDOUT.puts "Did not find any agents that still exists on ON but not on jenkins."
+    end
+
+    garbage_agents.each do |vm_hash|
+      STDOUT.puts "Killing VM: #{vm_hash['NAME']}."
       vm = Utils.vm_by_id(vm_hash['ID'])
       vm.delete
     end

@@ -1,6 +1,7 @@
 name: 'hh'
 type: 'bamboo'
 count: 10
+min_pool_size: 7
 template_name: 'some template name'
 provision:
   - command: 'uptime'

@@ -82,30 +82,41 @@ class BnclController
   end
 
   def run(vm_hashes)
+    if vm_hashes.empty?
+      abort("No VMs to provision.")
+    end
     vms_left = vm_hashes.length
-    run_results = []
+    run_results = Hash['SUCCESS', [], 'FAILED', []] 
     ssh_action = lambda do |vm_hash|
         final_commands = generate_ssh_commands(vm_hash)
         result = system(final_commands)
-        STDOUT.puts "Result #{result}"
         return result
     end
     vm_hashes.each do |vm_hash|
-      counter = 0
-      while !ssh_ready?(vm_hash)
-        counter += 1
-        tries_left = 60 - counter
-        break if counter > 60
+
+      ssh_counter = 0
+      # Wait a bit for vm to be ssh ready
+      while ssh_counter < 15 && !ssh_ready?(vm_hash)
+        ssh_counter += 1
         sleep 5
       end
-      if counter < 61 && ssh_action.call(vm_hash)
+      provision_counter = 0
+
+      while provision_counter < 15 && !ssh_action.call(vm_hash)
+        provision_counter += 1
+        sleep 5
+      end
+      # If we exit the previous loop and count is less then 15, then we must have been successful
+      if provision_counter < 15
         vms_left = vms_left - 1
+        run_results['SUCCESS'].push(vm_hash)
         STDOUT.puts "VM just provisioned: #{vm_hash['NAME']}."
         STDOUT.puts "Number of vms left to provision: #{vms_left}."
       else
-        run_results << vm_hash
+        run_results['FAILED'].push(vm_hash)
       end
     end
+    
     if vms_left != 0
       STDOUT.puts "ERROR: Failed to provision #{vms_left} vms."
     else

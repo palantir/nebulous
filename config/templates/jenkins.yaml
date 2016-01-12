@@ -1,6 +1,7 @@
 name: 'test'
 type: 'jenkins'
 count: 10
+min_pool_size: 7
 template_name: 'some template'
 provision:
   - type: "script"
@@ -11,3 +12,4 @@ jenkins_username: '${user}'
 jenkins_password: '${password}'
 credentials_id: '2dfc58d2-9d2e-49dd-849b-4eb1a4933e54'
 private_key_path: '${id_rsa}'
+mode: 'EXCLUSIVE'

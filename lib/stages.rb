@@ -67,6 +67,8 @@ module Stages
       end
       STDOUT.puts "Copying files to #{ip} from #{dir_prefix}."
       `#{@@scp_prefix} -r #{dir_prefix}/* root@#{ip}:`
+      STDOUT.puts "Clean tmp file."
+      `rm -rf #{dir_prefix}`
     end
 
     ##

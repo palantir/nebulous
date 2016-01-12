@@ -322,7 +322,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path', 'labels', 'check']
+      'credentials_id', 'private_key_path', 'labels', 'check', 'min_pool_size', 'mode']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)
@@ -346,7 +346,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path', 'labels', 'check']
+      'credentials_id', 'private_key_path', 'labels', 'check', 'min_pool_size', 'mode']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)
@@ -369,7 +369,7 @@ class PoolConfig
   class Bamboo < ConfigurationType
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
-      'provision', 'bamboo', 'bamboo_username', 'bamboo_password', 'check']
+      'provision', 'bamboo', 'bamboo_username', 'bamboo_password', 'check', 'min_pool_size']
 
     def initialize(options = {}, decryption_key_path = nil)
       super(options, decryption_key_path)
@@ -387,25 +387,6 @@ class PoolConfig
   end
 
   ##
-  # Contains configuration parameters for bamboo pools.
-
-  class QuickRunner < ConfigurationType
-
-    @@configuration_items = ['type','path', 'name']
-
-    def initialize(options = {}, decryption_key_path = nil)
-      super(options, decryption_key_path)
-      validate
-    end
-
-    def quickrunner
-      QuickProvisioner.new(type, path)
-    end
-
-  end
-
-
-  ##
   # Load a yaml file, parse it, and create the right configuration instance
 
   def self.load(filepath, key_path = nil)
@@ -420,10 +401,6 @@ class PoolConfig
     else
       raise UnknownConfigurationTypeError, "Unknown configuration type: #{config_type}."
     end
-  end
-
-  def self.quickRunner(raw_data)
-      QuickRunner.new(raw_data, key_path = nil)
   end
 
 end
