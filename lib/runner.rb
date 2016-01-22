@@ -33,7 +33,7 @@ def check_actions(checker, vm_hashes)
   check_results = checker.run(vm_hashes)
   check_results.each do |failed_vm|
     ip = failed_vm['TEMPLATE']['NIC']['IP']
-    STDOUT.puts "{ip} failed checks. Please delete or re-provision before registering the vm pool."
+    STDOUT.puts "#{ip} failed checks. Please delete or re-provision before registering the vm pool."
   end
   if check_results.empty?
       STDOUT.puts "Success! All vms were provisioned correctly and passed checks!"
