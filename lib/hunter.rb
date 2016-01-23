@@ -26,26 +26,24 @@ end
 # Take the options hash and see if there is a partition option and act accordingly
 
 def make_vm_list(config, delete_age, size)
-  vm_list = []
+  old_age_to_vm = Array.new {(Array.new(2))}
   currtime = Time.now.to_i
   STDOUT.puts "Making vm list of size #{size} for vms older than #{delete_age} days"
   provisioner = config.provisioner
   vm_hashes = provisioner.opennebula_state
   vm_hashes.each do |vm_hash|
-    if vm_list.size >= size
-      STDOUT.puts "Found #{size} vms older than #{delete_age}, exiting loop"
-      break
-    end
     stime = vm_hash['HISTORY_RECORDS']['HISTORY']['STIME'].to_i
     vm_age = (currtime - stime) / (3600 * 24)
     STDOUT.puts "Age of vm is #{vm_age}"
     if vm_age >= delete_age
-      STDOUT.puts "Age of vm is greater than delete age, adding to vm_list"
-      vm_list.push(vm_hash)
+      STDOUT.puts "Age of vm is greater than delete age, adding to old_age_to_vm"
+      old_age_to_vm.push([stime, vm_hash])
     end
   end
-  STDOUT.puts "Searching for #{size} vms and found #{vm_list.size}, returning list"
-  vm_list
+  end_index = size - 1
+  reap_vm_list = old_age_to_vm.sort_by{ |k| k[0] }[0..end_index].flatten.select { |val| false if Float(val) rescue true }
+  STDOUT.puts "Searching for #{size} vms and found #{reap_vm_list.size}, returning list"
+  return reap_vm_list
 end
 
 hunt = lambda do |config, opts|
