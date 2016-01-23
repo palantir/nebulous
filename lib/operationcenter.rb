@@ -82,7 +82,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     nodes_url = @configuration.jenkins + "/api/xml"
     raw_data = `curl -s -u #{@configuration.jenkins_username}:#{@configuration.jenkins_password} -k #{nodes_url}`
     job_xml = Nokogiri::XML(raw_data)
-    agent_urls = job_xml.xpath("//job//url")
+    agent_urls = job_xml.xpath("//job//url").select{ |k| k.to_s.include?("#{@configuration.name}")}
   end
 
   ##
