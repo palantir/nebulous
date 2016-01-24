@@ -282,7 +282,7 @@ class PoolConfig
         raise OpenNebulaTemplateError, "Problem getting template with id: #{template_id}."
       end
       vm_objects = (0...count).map do |i|
-        vm_name = vm_name_prefix ? "#{vm_name_prefix}-#{name}" : name
+        vm_name = vm_name_prefix ? "#{vm_name_prefix}-#{name}-#{Time.now.strftime("%m-%d-%y")}" : name
         actual_name = vm_name + '-' + Digest::SHA1.hexdigest(`date`.strip + i.to_s).to_s
         shortened_name = actual_name[0...38] # The entire host name must be less than 63 chars so this plus .itools.one.??? adds up
         vm_id = template.instantiate(shortened_name, false)
