@@ -120,7 +120,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
       agent_name = "#{@configuration.name}-#{agent_ip}"
       slave_uid = SecureRandom.uuid
-      jobXml = File.open("slave.xml")
+      jobXml = File.open("/opt/nebulous/slave.xml")
       doc = Nokogiri::XML(jobXml)
       host  = doc.at_css "host"
       host.content = agent_ip
