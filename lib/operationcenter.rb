@@ -41,9 +41,6 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
                               :password => jenkins_password, :server_url => jenkins)
   end
 
-  def take_offline(vm)
-
-
   ##
   # After provisioning perform the registration to jenkins.
 
