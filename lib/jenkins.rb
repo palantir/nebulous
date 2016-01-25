@@ -118,21 +118,5 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
       vm = Utils.vm_by_id(vm_hash['ID'])
       vm.delete
     end
-
-    # Find all the agents that exist on ON but not on jenkins.
-    garbage_agents = opennebula_state.select do |vm_hash|
-      vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      !online_agent_ips.include?(vm_ip)
-    end
-
-    if garbage_agents.empty?
-      STDOUT.puts "Did not find any agents that still exists on ON but not on jenkins."
-    end
-
-    garbage_agents.each do |vm_hash|
-      STDOUT.puts "Killing VM: #{vm_hash['NAME']}."
-      vm = Utils.vm_by_id(vm_hash['ID'])
-      vm.delete
-    end
   end
 end

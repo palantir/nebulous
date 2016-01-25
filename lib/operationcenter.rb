@@ -195,24 +195,6 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
     end
     # After deleting agents on ON side, remove on jenkins
     delete_agents_from_jenkins(offline_agents)
-
-    # Now find agents no longer exists on Jenkins that exist on ON
-    garbage_agents = opennebula_state.select do |vm_hash|
-      vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "#{@configuration.name}-#{vm_ip}"
-      STDOUT.puts "Checking id agent #{agent_name} exists on Jenkins"
-      !online_agents.include?(agent_name)
-    end
-    
-    if garbage_agents.empty?
-      STDOUT.puts "Did not find any agents on ON but don't exist on jenkins."
-    end
-
-    garbage_agents.each do |vm_hash|
-      STDOUT.puts "Killing VM: #{vm_hash}."
-      vm = Utils.vm_by_id(vm_hash['ID'])
-      vm.delete
-    end
   end
 
 end
