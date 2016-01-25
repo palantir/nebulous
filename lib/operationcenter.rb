@@ -91,7 +91,7 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
       agent_name = "agent-#{agent_ip}"
       #First disable job.
-      jobXml = File.open("slave.xml")
+      jobXml = File.open("/opt/nebulous/slave.xml")
       doc = Nokogiri::XML(jobXml)
       disabled  = doc.at_css "disabled"
       disabled.content = true
