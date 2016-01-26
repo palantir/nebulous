@@ -49,7 +49,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
   def registration(vm_hashes)
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      agent_name = "#{agent_name}-#{agent_ip}"
+      agent_name = "#{@configuration.name}-#{agent_ip}"
       @jenkins_node_client.create_dumb_slave({
         :name => agent_name, :remote_fs => '/home/jenkins',
         :description => "Bncl Agent",
