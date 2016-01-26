@@ -322,7 +322,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path', 'labels', 'check']
+      'credentials_id', 'private_key_path', 'labels', 'check', 'mode']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)
@@ -346,7 +346,7 @@ class PoolConfig
 
     @@configuration_items = ['name', 'type', 'count', 'template_name',
       'provision', 'jenkins', 'jenkins_username', 'jenkins_password',
-      'credentials_id', 'private_key_path', 'labels', 'check']
+      'credentials_id', 'private_key_path', 'labels', 'check', 'mode']
 
     def initialize(options = {}, decryption_key_path = nil) 
       super(options, decryption_key_path)

@@ -54,7 +54,8 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
         :name => agent_name, :remote_fs => '/home/jenkins',
         :description => "Ephemeral agent meant to run only 1 job and then die.",
         :slave_host => agent_ip, :private_key_file => private_key_path,
-        :executors => 1, :labels => labels.join(", "), :credentials_id => credentials_id})
+        :executors => 1, :labels => labels.join(", "), :credentials_id => credentials_id,
+        :mode => @configuration.mode})
         sleep @@registration_wait_time
     end
   end

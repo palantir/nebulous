@@ -57,9 +57,11 @@ class OperationCenterProvisioner < Provisioner::ProvisionerType
       host  = doc.at_css "host"
       host.content = agent_ip
       credentialsid = doc.at_css "credentialsId"
-      credentialsid.content = credentials_id
+      credentialsid.content = @configuration.credentials_id
       uid  = doc.at_css "uid"
       uid.content = slave_uid
+      mode = doc.at_css "mode"
+      mode.content = @configuration.mode
       jobXml = doc.to_html
       job = ::JenkinsApi::Client::Job.new(client)
       job_created = false
