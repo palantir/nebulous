@@ -91,14 +91,18 @@ class BnclController
         return result
     end
     vm_hashes.each do |vm_hash|
-      counter = 0
-      while !ssh_ready?(vm_hash)
-        counter += 1
-        tries_left = 60 - counter
-        break if counter > 60
+      ssh_counter = 0
+      while ssh_counter < 20 && !ssh_ready?(vm_hash)
+        ssh_counter += 1
         sleep 5
       end
-      if counter < 61 && ssh_action.call(vm_hash)
+
+      provision_counter = 0
+      while provision_counter < 10 && !ssh_action.call(vm_hash)
+        provision_counter += 1
+        sleep 5
+      end
+      if provision_counter < 10
         vms_left = vms_left - 1
         STDOUT.puts "VM just provisioned: #{vm_hash['NAME']}."
         STDOUT.puts "Number of vms left to provision: #{vms_left}."
