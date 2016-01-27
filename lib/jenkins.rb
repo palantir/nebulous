@@ -83,7 +83,9 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
       abort("Only delete one node at a time!")
     else
       agent_name = list_agent_names.first
-      @jenkins_node_client.toggle_temporarilyOffline(agent_name, reason="Reaping old node.")
+      if !@jenkins_node_client.is_temporarilyOffline?(agent_name)
+        @jenkins_node_client.toggle_temporarilyOffline(agent_name, reason="Reaping old node.")
+      end
     end
   end
   
