@@ -211,7 +211,7 @@ class PoolConfig
         # Filter things down to just this pool
         everything.select do |vm|
           pool = vm['USER_TEMPLATE']['POOL']
-          name_match = vm['NAME'].include?(name)
+          name_match = vm['NAME'].start_with?(name)
           if pool.nil?
             name_match
           else
