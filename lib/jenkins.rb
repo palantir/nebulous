@@ -96,7 +96,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     # loop through agents and delete the ones that are offline. Store online/oflline in seperate lists
     list_agent_names.each do |agent_name|
       if agent_name.to_s.start_with?(@configuration.name)
-        agent_ip = agent_name.match(/(.+?)-(.+?)$/)[2]
+        agent_ip = agent_name.match(/(.+?)-([^-]*)$/)[2]
         if agent_disabled?(agent_name)
           delete_agent(agent_name)
           offline_agent_ips.push(agent_ip)
