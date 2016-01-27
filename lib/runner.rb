@@ -51,7 +51,7 @@ valid_actions = {
       `ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 root@#{ip} -t 'rm -rf /root/bncl-check-results; mkdir /root/bncl-check-results;'`
     end
     check_results = checker.run(vm_hashes)
-    vm_hashes['FAILED'].each do |vm_hash|
+    vm_hashes.each do |vm_hash|
       ip = vm_hash['TEMPLATE']['NIC']['IP']
       `scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r root@#{ip}:/root/bncl-check-results /var/lib/jenkins/tmp-results/#{ip}`
     end
