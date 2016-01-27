@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require_relative '../vendor/bundle/bundler/setup'
-['./errors', './config', './provisioner', './stages', './utils', './controller', './jenkins', './bamboo', './operationcenter', './checker', './quickrunner'].each do |relative|
+['./errors', './config', './provisioner', './stages', './utils', './controller', './jenkins', './bamboo', './operationcenter', './checker'].each do |relative|
   require_relative relative
 end
 ['trollop'].each do |g|
@@ -110,7 +110,7 @@ opts = Trollop::options do
   opt :configuration, "Location of pool configuration yaml file",
    :required => false, :type => :string, :multi => false
   opt :action, "Type of action, e.g. #{valid_actions.keys.join(', ')}. Can be repeated several times",
-   :required => false, :type => :string, :multi => true, :default => "quickrunner"
+   :required => true, :type => :string, :multi => true
   opt :decryption_key, "File path for the decryption key for secure configurations",
    :required => false, :type => :string, :multi => false
   opt :synthetic, "Provide a list of ip addresses to act on",
