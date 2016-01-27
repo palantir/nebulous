@@ -11,7 +11,7 @@ check = lambda do |config, opts|
   checker = config.checker
   vm_hashes = checker.opennebula_state
   check_results = checker.run(vm_hashes)
-  check_results.each do |failed_vm|
+  check_results['FAILED'].each do |failed_vm|
     ip = failed_vm['TEMPLATE']['NIC']['IP']
     STDOUT.puts "#{ip} failed checks. Please delete or re-provision before registering the vm pool."
   end
