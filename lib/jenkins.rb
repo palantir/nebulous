@@ -52,13 +52,19 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     vm_hashes.each do |vm_hash|
       agent_ip = vm_hash['TEMPLATE']['NIC']['IP']
       agent_name = "#{@configuration.name}-#{agent_ip}"
-      @jenkins_node_client.create_dumb_slave({
-        :name => agent_name, :remote_fs => '/home/jenkins',
-        :description => "Bncl Agent",
-        :slave_host => agent_ip, :private_key_file => @configuration.private_key_path,
-        :executors => 1, :labels => @configuration.labels.join(", "), 
-        :credentials_id => @configuration.credentials_id,
-        :mode => @configuration.mode})
+      begin
+        @jenkins_node_client.create_dumb_slave({
+          :name => agent_name, :remote_fs => '/home/jenkins',
+          :description => "Bncl Agent",
+          :slave_host => agent_ip, :private_key_file => @configuration.private_key_path,
+          :executors => 1, :labels => @configuration.labels.join(", "), 
+          :credentials_id => @configuration.credentials_id,
+          :mode => @configuration.mode})
+      rescue
+        STDERR.puts $!, $@ # Print exception
+        sleep 5
+        next
+      end
     end
   end
   
