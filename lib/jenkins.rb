@@ -64,7 +64,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
   
   def delete_agent(agent_name)
     begin
-      @jenkins_client.delete(agent_name)
+      @jenkins_node_client.delete(agent_name)
     rescue
       STDOUT.puts "Agent with name #{agent_name} did not exist."
     end
@@ -88,7 +88,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
     jenkins = @configuration.jenkins
     jenkins_username = @configuration.jenkins_username
     jenkins_password = @configuration.jenkins_password
-    list_agent_names = jenkins_node_client.list
+    list_agent_names = @jenkins_node_client.list
     offline_agent_ips = []
     online_agent_ips = []
     all_agent_ips = []
