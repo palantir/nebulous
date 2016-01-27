@@ -107,18 +107,18 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
         agent_ip = agent_name.match(/(.+?)-([^-]*)$/)[2]
         if agent_disabled?(agent_name)
           delete_agent(agent_name)
-          offline_agent_ips.push(agent_ip)
+          offline_agent_ips.push("#{agent_ip}")
         else
-          online_agent_ips.push(agent_ip)
+          online_agent_ips.push("#{agent_ip}")
         end
-        all_agent_ips.push(agent_ip)
+        all_agent_ips.push("#{agent_ip}")
       end
     end
 
     # Find agents that are offline in jenkins and running on ON.
     garbage_agents = opennebula_state.select do |vm_hash|
       vm_ip = vm_hash['TEMPLATE']['NIC']['IP']
-      offline_agent_ips.include?(vm_ip)
+      offline_agent_ips.include?("#{vm_ip}")
     end
 
     if garbage_agents.empty?
