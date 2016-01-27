@@ -72,7 +72,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
 
   def take_offline?(vm)
     vm_ip = vm.to_hash['TEMPLATE']['NIC']['IP']
-    list_agent_names = @jenkins_node_client.list(filter='#{vm_ip}')
+    list_agent_names = @jenkins_node_client.list(filter="#{vm_ip}")
     if list_agent_names.size > 1
       abort("Only delete one node at a time!")
     else
