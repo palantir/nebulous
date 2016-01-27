@@ -18,7 +18,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
 
   def online_agent_ips
     online_agent_ips =[]
-    list_agent_names.each do |agent_name|
+    @jenkins_node_client.list.each do |agent_name|
       agent_ip = agent_data.match(/(.+?)-(.+?)$/)[2]
       if !agent_disabled?(agent_name)
         online_agent_ips.push(agent_ip)

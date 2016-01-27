@@ -3,7 +3,7 @@ GEM
   specs:
     builder (3.2.2)
     coderay (1.1.0)
-    jenkins_api_client (1.3.0)
+    jenkins_api_client (1.4.2)
       json
       mixlib-shellout (>= 1.1.0)
       nokogiri (~> 1.6.0)
