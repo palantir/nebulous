@@ -123,5 +123,6 @@ opts[:action].each do |action|
   when *valid_actions.keys
   else
     raise UnknownActionError, "Unknown action: #{action}."
+  end
+  opts[:action].each {|action| valid_actions[action].call(config, opts)}
 end
-opts[:action].each {|action| valid_actions[action].call(config, opts)}
