@@ -38,7 +38,7 @@ class JenkinsProvisioner < Provisioner::ProvisionerType
   def agent_disabled?(agent_name)
     # All running machines have a progress bar object.
     data=`curl -s -u #{@configuration.jenkins_username}:#{@configuration.jenkins_password} #{@configuration.jenkins.chomp('/')}/computer/#{agent_name}/`
-     if !data['progress-bar-done'] && data['Disconnected by BNCL']
+     if !data['progress-bar-done'] && data['Disconnected by']
         STDOUT.puts "Jenkins agent is offline and not running any jobs."
         return true
      end
