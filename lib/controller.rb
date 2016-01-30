@@ -102,12 +102,12 @@ class BnclController
       end
       provision_counter = 0
 
-      while provision_counter < 15 && !ssh_action.call(vm_hash)
+      while provision_counter < 3 && !ssh_action.call(vm_hash)
         provision_counter += 1
         sleep 5
       end
       # If we exit the previous loop and count is less then 15, then we must have been successful
-      if provision_counter < 15
+      if provision_counter < 3
         vms_left = vms_left - 1
         run_results['SUCCESS'].push(vm_hash)
         STDOUT.puts "VM just provisioned: #{vm_hash['NAME']}."
