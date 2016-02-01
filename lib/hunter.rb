@@ -32,6 +32,7 @@ def make_vm_list(config, delete_age, size)
   STDOUT.puts "Making vm list of size #{size} for vms older than #{delete_age} days"
   provisioner = config.provisioner
   checker = config.checker
+  end_index = size - 1
 
   # First look for bad machines to take offline
   vm_hashes = checker.opennebula_state
@@ -50,12 +51,11 @@ def make_vm_list(config, delete_age, size)
         old_age_to_vm.push([stime, vm_hash])
       end
     end
-    end_index = size - 1
     reap_vm_list = old_age_to_vm.sort_by{ |k| k[0] }[0..end_index].flatten.select { |val| false if Float(val) rescue true }
     STDOUT.puts "Searching for #{size} vms and found #{reap_vm_list.size}, returning list"
     return reap_vm_list
   else
-    return bad_vms
+    return bad_vms[0..end_index]
   end
 end
 
